@@ -69,8 +69,18 @@ def main(argv=None):
         source = source.rstrip('\\').rstrip('/')
         options = copy(optionstemplate)
         checkOptions()
-        if len(sources) > 1:
-            print('Working on ' + source + '...')
+        if os.path.isdir(source) and options.batchsplit == 0:
+            sourcefiles = []
+            ext = (".cbz",".cbr",".cb7",".pdf")
+            for dirpath, dirnames, filenames in os.walk(source):
+                for filename in filenames:
+                    if str(filename).endswith(ext):
+                        sourcefiles.append(os.path.join(dirpath,filename))
+            for sourcefile in sourcefiles:
+                print('\nWorking on ' + os.path.normpath(sourcefile))
+                makeBook(sourcefile)
+        else:
+            print('\nWorking on ' + os.path.normpath(source))
         makeBook(source)
     return 0
 
