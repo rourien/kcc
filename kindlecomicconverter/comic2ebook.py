@@ -622,6 +622,11 @@ def getWorkFolder(afile):
 
 
 def getOutputFilename(srcpath, wantedname, ext, tomenumber):
+    if options.copysourcetree:
+        copysourcetree = options.copysourcetree
+        copysourcetree = copysourcetree + os.path.split(str(srcpath).split(copysourcetree)[1])[0] + os.sep
+    else:
+        copysourcetree = ""
     if options.padzeros > 0:
         padzeros = options.padzeros + 1
     else: padzeros = 0
@@ -633,9 +638,9 @@ def getOutputFilename(srcpath, wantedname, ext, tomenumber):
         if wantedname.endswith(ext):
             filename = os.path.abspath(wantedname)
         elif os.path.isdir(srcpath):
-            filename = os.path.join(os.path.abspath(options.output), os.path.basename(srcpath) + ext)
+            filename = os.path.join(os.path.abspath(options.output), copysourcetree, os.path.basename(srcpath) + ext)
         else:
-            filename = os.path.join(os.path.abspath(options.output),
+            filename = os.path.join(os.path.abspath(options.output), copysourcetree,
                                     os.path.basename(os.path.splitext(srcpath)[0]) + ext)
     elif os.path.isdir(srcpath):
         filename = srcpath + tomenumber.zfill(padzeros) + ext
@@ -941,6 +946,9 @@ def makeParser():
 
     outputOptions.add_option("-o", "--output", action="store", dest="output", default=None,
                              help="Output generated file to specified directory or file")
+    outputOptions.add_option("--copysourcetree", action="store", dest="copysourcetree", default=None,
+                             help="Additional option for use with --output. Name of the top most directory to be used"
+                             " when recreating the source directory tree in the output directory.")
     outputOptions.add_option("-t", "--title", action="store", dest="title", default="defaulttitle",
                              help="Comic title [Default=filename or directory name]")
     outputOptions.add_option("-f", "--format", action="store", dest="format", default="Auto",
@@ -1159,6 +1167,12 @@ def makeBook(source, qtgui=None):
             else:
                 filepath.append(getOutputFilename(source, options.output, '.epub', ''))
             makeZIP(tome + '_comic', tome, True)
+            if not os.path.exists(os.path.split(filepath[-1])[0]):
+                try:
+                    print("Recreating directory tree in ouput directory...")
+                    os.makedirs(os.path.split(filepath[-1])[0])
+                except:
+                    raise UserWarning("Unable to recreate the directory tree in the ouput directory.")
         move(tome + '_comic.zip', filepath[-1])
         rmtree(tome, True)
         if GUI:
