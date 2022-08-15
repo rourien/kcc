@@ -510,7 +510,8 @@ def imgDirectoryProcessing(path):
     for dirpath, _, filenames in os.walk(path):
         for afile in filenames:
             pagenumber += 1
-            work.append([afile, dirpath, options])
+            if not afile == "ComicInfo.xml":
+                work.append([afile, dirpath, options])
     if GUI:
         GUI.progressBarTick.emit(str(pagenumber))
     if len(work) > 0:
@@ -687,7 +688,8 @@ def getComicInfo(path, originalpath):
             options.chapters = xml.data['Bookmarks']
         if xml.data['Summary']:
             options.summary = hescape(xml.data['Summary'])
-        os.remove(xmlPath)
+        if not options.copycomicinfo:
+            os.remove(xmlPath)
 
 
 def getDirectorySize(start_path='.'):
@@ -746,16 +748,17 @@ def sanitizeTreeKobo(filetree):
     for root, dirs, files in os.walk(filetree):
         dirs, files = walkSort(dirs, files)
         for name in files:
-            splitname = os.path.splitext(name)
-            slugified = str(pageNumber).zfill(5)
-            pageNumber += 1
-            while os.path.exists(os.path.join(root, slugified + splitname[1])) and splitname[0].upper()\
-                    != slugified.upper():
-                slugified += "A"
-            newKey = os.path.join(root, slugified + splitname[1])
-            key = os.path.join(root, name)
-            if key != newKey:
-                os.replace(key, newKey)
+            if not name == "ComicInfo.xml":
+                splitname = os.path.splitext(name)
+                slugified = str(pageNumber).zfill(5)
+                pageNumber += 1
+                while os.path.exists(os.path.join(root, slugified + splitname[1])) and splitname[0].upper()\
+                        != slugified.upper():
+                    slugified += "A"
+                newKey = os.path.join(root, slugified + splitname[1])
+                key = os.path.join(root, name)
+                if key != newKey:
+                    os.replace(key, newKey)
 
 
 def sanitizePermissions(filetree):
@@ -854,6 +857,8 @@ def detectCorruption(tmppath, orgpath):
                         raise RuntimeError('Pillow was compiled without JPG and/or PNG decoder.')
                     else:
                         raise RuntimeError('Image file %s is corrupted. Error: %s' % (pathOrg, str(err)))
+            elif options.copycomicinfo and name == "ComicInfo.xml":
+                pass
             else:
                 os.remove(os.path.join(root, name))
     if alreadyProcessed:
@@ -934,6 +939,8 @@ def makeParser():
                                   "2: Consider every subdirectory as separate volume [Default=0]")
     outputOptions.add_option("--padzeros", type="int", dest="padzeros", default="0",
                              help="Pad \"_kcc(#)\" with given number of zeros. [Default=0]")
+    outputOptions.add_option("--copycomicinfo", action="store_true", dest="copycomicinfo", default=False,
+                             help="Copy ComicInfo.xml to generated file")
 
     processingOptions.add_option("-n", "--noprocessing", action="store_true", dest="noprocessing", default=False,
                                  help="Do not modify image and ignore any profil or processing option")
@@ -1036,7 +1043,9 @@ def checkOptions():
         image.ProfileData.Profiles["Custom"] = newProfile
         options.profile = "Custom"
     options.profileData = image.ProfileData.Profiles[options.profile]
-
+    # Only copy ComicInfo.xml to .cbz files
+    if not options.format == "CBZ":
+        options.copycomicinfo == False
 
 def checkTools(source):
     source = source.upper()

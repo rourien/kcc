@@ -107,7 +107,8 @@ class ComicPageParser:
         self.source = source
         self.size = self.opt.profileData[1]
         self.payload = []
-        self.image = Image.open(os.path.join(source[0], source[1])).convert('RGB')
+        if not source[0] == "ComicInfo.xml":
+            self.image = Image.open(os.path.join(source[0], source[1])).convert('RGB')
         self.color = self.colorCheck()
         self.fill = self.fillCheck()
         self.splitCheck()
