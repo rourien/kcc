@@ -611,6 +611,9 @@ def getWorkFolder(afile):
 
 
 def getOutputFilename(srcpath, wantedname, ext, tomenumber):
+    if options.padzeros > 0:
+        padzeros = options.padzeros + 1
+    else: padzeros = 0
     if srcpath[-1] == os.path.sep:
         srcpath = srcpath[:-1]
     if 'Ko' in options.profile and options.format == 'EPUB':
@@ -624,7 +627,7 @@ def getOutputFilename(srcpath, wantedname, ext, tomenumber):
             filename = os.path.join(os.path.abspath(options.output),
                                     os.path.basename(os.path.splitext(srcpath)[0]) + ext)
     elif os.path.isdir(srcpath):
-        filename = srcpath + tomenumber + ext
+        filename = srcpath + tomenumber.zfill(padzeros) + ext
     else:
         if 'Ko' in options.profile and options.format == 'EPUB':
             path = srcpath.split(os.path.sep)
@@ -637,9 +640,9 @@ def getOutputFilename(srcpath, wantedname, ext, tomenumber):
     if os.path.isfile(filename):
         counter = 0
         basename = os.path.splitext(filename)[0]
-        while os.path.isfile(basename + '_kcc' + str(counter) + ext):
+        while os.path.isfile(basename + '_kcc' + str(counter).zfill(padzeros) + ext):
             counter += 1
-        filename = basename + '_kcc' + str(counter) + ext
+        filename = basename + '_kcc' + str(counter).zfill(padzeros) + ext
     return filename
 
 
@@ -929,6 +932,8 @@ def makeParser():
     outputOptions.add_option("-b", "--batchsplit", type="int", dest="batchsplit", default="0",
                              help="Split output into multiple files. 0: Don't split 1: Automatic mode "
                                   "2: Consider every subdirectory as separate volume [Default=0]")
+    outputOptions.add_option("--padzeros", type="int", dest="padzeros", default="0",
+                             help="Pad \"_kcc(#)\" with given number of zeros. [Default=0]")
 
     processingOptions.add_option("-n", "--noprocessing", action="store_true", dest="noprocessing", default=False,
                                  help="Do not modify image and ignore any profil or processing option")
