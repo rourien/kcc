@@ -731,26 +731,27 @@ def sanitizeTree(filetree):
     chapterNames = {}
     for root, dirs, files in os.walk(filetree, False):
         for name in files:
-            splitname = os.path.splitext(name)
-            slugified = slugify(splitname[0], False)
-            while os.path.exists(os.path.join(root, slugified + splitname[1])) and splitname[0].upper()\
-                    != slugified.upper():
-                slugified += "A"
-            newKey = os.path.join(root, slugified + splitname[1])
-            key = os.path.join(root, name)
-            if key != newKey:
-                os.replace(key, newKey)
-        for name in dirs:
-            tmpName = name
-            slugified = slugify(name, True)
-            while os.path.exists(os.path.join(root, slugified)) and name.upper() != slugified.upper():
-                slugified += "A"
-            chapterNames[slugified] = tmpName
-            newKey = os.path.join(root, slugified)
-            key = os.path.join(root, name)
-            if key != newKey:
-                os.replace(key, newKey)
-    return chapterNames
+            if not name == "ComicInfo.xml":
+                splitname = os.path.splitext(name)
+                slugified = slugify(splitname[0], False)
+                while os.path.exists(os.path.join(root, slugified + splitname[1])) and splitname[0].upper()\
+                        != slugified.upper():
+                    slugified += "A"
+                newKey = os.path.join(root, slugified + splitname[1])
+                key = os.path.join(root, name)
+                if key != newKey:
+                    os.replace(key, newKey)
+            for name in dirs:
+                tmpName = name
+                slugified = slugify(name, True)
+                while os.path.exists(os.path.join(root, slugified)) and name.upper() != slugified.upper():
+                    slugified += "A"
+                chapterNames[slugified] = tmpName
+                newKey = os.path.join(root, slugified)
+                key = os.path.join(root, name)
+                if key != newKey:
+                    os.replace(key, newKey)
+        return chapterNames
 
 
 def sanitizeTreeKobo(filetree):
