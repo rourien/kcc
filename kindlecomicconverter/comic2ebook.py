@@ -621,7 +621,7 @@ def getWorkFolder(afile):
     return newpath
 
 
-def getOutputFilename(srcpath, wantedname, ext, tomenumber):
+def getOutputFilename(srcpath, wantedname, ext, tomenumber, checkexists=False):
     if options.copysourcetree:
         copysourcetree = options.copysourcetree
         copysourcetree = copysourcetree + os.path.split(str(srcpath).split(copysourcetree)[1])[0] + os.sep
@@ -653,12 +653,13 @@ def getOutputFilename(srcpath, wantedname, ext, tomenumber):
             filename = os.path.sep.join(path)
         else:
             filename = os.path.splitext(srcpath)[0] + tomenumber + ext
-    if os.path.isfile(filename):
-        counter = 0
-        basename = os.path.splitext(filename)[0]
-        while os.path.isfile(basename + '_kcc' + str(counter).zfill(padzeros) + ext):
-            counter += 1
-        filename = basename + '_kcc' + str(counter).zfill(padzeros) + ext
+    if checkexists == False:
+        if os.path.isfile(filename):
+            counter = 0
+            basename = os.path.splitext(filename)[0]
+            while os.path.isfile(basename + '_kcc' + str(counter).zfill(padzeros) + ext):
+                counter += 1
+            filename = basename + '_kcc' + str(counter).zfill(padzeros) + ext
     return filename
 
 
@@ -956,6 +957,8 @@ def makeParser():
     outputOptions.add_option("-b", "--batchsplit", type="int", dest="batchsplit", default="0",
                              help="Split output into multiple files. 0: Don't split 1: Automatic mode "
                                   "2: Consider every subdirectory as separate volume [Default=0]")
+    outputOptions.add_option("--skipexisting", action="store", dest="skipexisting", default=False,
+                             help="Skip if wanted file already exists in the output directory.")
     outputOptions.add_option("--padzeros", type="int", dest="padzeros", default="0",
                              help="Pad \"_kcc(#)\" with given number of zeros. [Default=0]")
     outputOptions.add_option("--copycomicinfo", action="store_true", dest="copycomicinfo", default=False,
@@ -1099,6 +1102,23 @@ def checkPre(source):
             pass
     except Exception:
         raise UserWarning("Target directory is not writable.")
+    if checkExists(source):
+        filepath = checkExists(source)
+        print("File already exists. Skipping operation.")
+        return True
+
+
+def checkExists(source):
+    if options.skipexisting:
+        if options.format == "CBZ":
+            ext = ".cbz"
+        elif options.format == "MOBI":
+            ext = ".mobi"
+        else:
+            ext = ".epub"
+        filepath = getOutputFilename(source, options.output, ext, '', checkexists=True)
+        if os.path.isfile(filepath):
+            return filepath
 
 
 def makeBook(source, qtgui=None):
@@ -1108,99 +1128,101 @@ def makeBook(source, qtgui=None):
         GUI.progressBarTick.emit('1')
     else:
         checkTools(source)
-    checkPre(source)
-    print("Preparing source images...")
-    path = getWorkFolder(source)
-    print("Checking images...")
-    getComicInfo(os.path.join(path, "OEBPS", "Images"), source)
-    detectCorruption(os.path.join(path, "OEBPS", "Images"), source)
-    if options.webtoon:
-        y = image.ProfileData.Profiles[options.profile][1][1]
-        comic2panel.main(['-y ' + str(y), '-i', '-m', path], qtgui)
-    if options.noprocessing:
-        print("Do not process image, ignore any profil or processing option")
-    else:
-        print("Processing images...")
-        if GUI:
-            GUI.progressBarTick.emit('Processing images')
-        imgDirectoryProcessing(os.path.join(path, "OEBPS", "Images"))
-    if GUI:
-        GUI.progressBarTick.emit('1')
-    chapterNames = sanitizeTree(os.path.join(path, 'OEBPS', 'Images'))
-    if 'Ko' in options.profile and options.format == 'CBZ':
-        sanitizeTreeKobo(os.path.join(path, 'OEBPS', 'Images'))
-    if options.batchsplit > 0:
-        tomes = splitDirectory(path)
-    else:
-        tomes = [path]
-    filepath = []
-    tomeNumber = 0
-    if GUI:
-        if options.format == 'CBZ':
-            GUI.progressBarTick.emit('Compressing CBZ files')
+    if not checkPre(source):
+        print("Preparing source images...")
+        path = getWorkFolder(source)
+        print("Checking images...")
+        getComicInfo(os.path.join(path, "OEBPS", "Images"), source)
+        detectCorruption(os.path.join(path, "OEBPS", "Images"), source)
+        if options.webtoon:
+            y = image.ProfileData.Profiles[options.profile][1][1]
+            comic2panel.main(['-y ' + str(y), '-i', '-m', path], qtgui)
+        if options.noprocessing:
+            print("Do not process image, ignore any profil or processing option")
         else:
-            GUI.progressBarTick.emit('Compressing EPUB files')
-        GUI.progressBarTick.emit(str(len(tomes) + 1))
-        GUI.progressBarTick.emit('tick')
-    options.baseTitle = options.title
-    options.covers = []
-    for tome in tomes:
-        options.uuid = str(uuid4())
-        if len(tomes) > 9:
-            tomeNumber += 1
-            options.title = options.baseTitle + ' [' + str(tomeNumber).zfill(2) + '/' + str(len(tomes)).zfill(2) + ']'
-        elif len(tomes) > 1:
-            tomeNumber += 1
-            options.title = options.baseTitle + ' [' + str(tomeNumber) + '/' + str(len(tomes)) + ']'
-        if options.format == 'CBZ':
-            print("Creating CBZ file...")
-            if len(tomes) > 1:
-                filepath.append(getOutputFilename(source, options.output, '.cbz', ' ' + str(tomeNumber)))
-            else:
-                filepath.append(getOutputFilename(source, options.output, '.cbz', ''))
-            makeZIP(tome + '_comic', os.path.join(tome, "OEBPS", "Images"))
-        else:
-            print("Creating EPUB file...")
-            buildEPUB(tome, chapterNames, tomeNumber)
-            if len(tomes) > 1:
-                filepath.append(getOutputFilename(source, options.output, '.epub', ' ' + str(tomeNumber)))
-            else:
-                filepath.append(getOutputFilename(source, options.output, '.epub', ''))
-            makeZIP(tome + '_comic', tome, True)
-        if not os.path.exists(os.path.split(filepath[-1])[0]):
-            try:
-                print("Recreating directory tree in ouput directory...")
-                os.makedirs(os.path.split(filepath[-1])[0])
-            except:
-                raise UserWarning("Unable to recreate the directory tree in the ouput directory.")
-        move(tome + '_comic.zip', filepath[-1])
-        rmtree(tome, True)
+            print("Processing images...")
+            if GUI:
+                GUI.progressBarTick.emit('Processing images')
+            imgDirectoryProcessing(os.path.join(path, "OEBPS", "Images"))
         if GUI:
+            GUI.progressBarTick.emit('1')
+        chapterNames = sanitizeTree(os.path.join(path, 'OEBPS', 'Images'))
+        if 'Ko' in options.profile and options.format == 'CBZ':
+            sanitizeTreeKobo(os.path.join(path, 'OEBPS', 'Images'))
+        if options.batchsplit > 0:
+            tomes = splitDirectory(path)
+        else:
+            tomes = [path]
+        filepath = []
+        tomeNumber = 0
+        if GUI:
+            if options.format == 'CBZ':
+                GUI.progressBarTick.emit('Compressing CBZ files')
+            else:
+                GUI.progressBarTick.emit('Compressing EPUB files')
+            GUI.progressBarTick.emit(str(len(tomes) + 1))
             GUI.progressBarTick.emit('tick')
-    if not GUI and options.format == 'MOBI':
-        print("Creating MOBI files...")
-        work = []
-        for i in filepath:
-            work.append([i])
-        output = makeMOBI(work, GUI)
-        for errors in output:
-            if errors[0] != 0:
-                print('Error: KindleGen failed to create MOBI!')
-                print(errors)
-                return filepath
-        k = kindle.Kindle()
-        if k.path and k.coverSupport:
-            print("Kindle detected. Uploading covers...")
-        for i in filepath:
-            output = makeMOBIFix(i, options.covers[filepath.index(i)][1])
-            if not output[0]:
-                print('Error: Failed to tweak KindleGen output!')
-                return filepath
+        options.baseTitle = options.title
+        options.covers = []
+        for tome in tomes:
+            options.uuid = str(uuid4())
+            if len(tomes) > 9:
+                tomeNumber += 1
+                options.title = options.baseTitle + ' [' + str(tomeNumber).zfill(2) + '/' + str(len(tomes)).zfill(2) + ']'
+            elif len(tomes) > 1:
+                tomeNumber += 1
+                options.title = options.baseTitle + ' [' + str(tomeNumber) + '/' + str(len(tomes)) + ']'
+            if options.format == 'CBZ':
+                print("Creating CBZ file...")
+                if len(tomes) > 1:
+                    filepath.append(getOutputFilename(source, options.output, '.cbz', ' ' + str(tomeNumber)))
+                else:
+                    filepath.append(getOutputFilename(source, options.output, '.cbz', ''))
+                makeZIP(tome + '_comic', os.path.join(tome, "OEBPS", "Images"))
             else:
-                os.remove(i.replace('.epub', '.mobi') + '_toclean')
+                print("Creating EPUB file...")
+                buildEPUB(tome, chapterNames, tomeNumber)
+                if len(tomes) > 1:
+                    filepath.append(getOutputFilename(source, options.output, '.epub', ' ' + str(tomeNumber)))
+                else:
+                    filepath.append(getOutputFilename(source, options.output, '.epub', ''))
+                makeZIP(tome + '_comic', tome, True)
+            if not os.path.exists(os.path.split(filepath[-1])[0]):
+                try:
+                    print("Recreating directory tree in ouput directory...")
+                    os.makedirs(os.path.split(filepath[-1])[0])
+                except:
+                    raise UserWarning("Unable to recreate the directory tree in the ouput directory.")
+            move(tome + '_comic.zip', filepath[-1])
+            rmtree(tome, True)
+            if GUI:
+                GUI.progressBarTick.emit('tick')
+        if not GUI and options.format == 'MOBI':
+            print("Creating MOBI files...")
+            work = []
+            for i in filepath:
+                work.append([i])
+            output = makeMOBI(work, GUI)
+            for errors in output:
+                if errors[0] != 0:
+                    print('Error: KindleGen failed to create MOBI!')
+                    print(errors)
+                    return filepath
+            k = kindle.Kindle()
             if k.path and k.coverSupport:
-                options.covers[filepath.index(i)][0].saveToKindle(k, options.covers[filepath.index(i)][1])
-    return filepath
+                print("Kindle detected. Uploading covers...")
+            for i in filepath:
+                output = makeMOBIFix(i, options.covers[filepath.index(i)][1])
+                if not output[0]:
+                    print('Error: Failed to tweak KindleGen output!')
+                    return filepath
+                else:
+                    os.remove(i.replace('.epub', '.mobi') + '_toclean')
+                if k.path and k.coverSupport:
+                    options.covers[filepath.index(i)][0].saveToKindle(k, options.covers[filepath.index(i)][1])
+    else:
+        filepath = checkExists(source)
+        return filepath
 
 
 def makeMOBIFix(item, uuid):

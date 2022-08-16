@@ -112,6 +112,9 @@ Options:
                         Split output into multiple files. 0: Don't split 1:
                         Automatic mode 2: Consider every subdirectory as
                         separate volume [Default=0]
+    --skipexisting=SKIPEXISTING
+                        Skip if wanted file already exists in the output
+                        directory.
     --padzeros=PADZEROS
                         Pad "_kcc(#)" with given number of zeros. [Default=0]
     --copycomicinfo   Copy ComicInfo.xml to generated file
