@@ -90,7 +90,7 @@ def main(argv=None):
         for alreadyexists in alreadyexistslist:
             print(os.path.normpath(alreadyexists))
     if alreadyprocessedlist:
-        print("\nThe following file(s) were already processed and were skipped:")
+        print("\nThe following file(s) were probably created by KCC and were skipped:")
         for alreadprocessed in alreadyprocessedlist:
             print(os.path.normpath(alreadprocessed))
     if completedlist:
@@ -1136,12 +1136,12 @@ def checkPre(source):
         if options.skipexisting == 1 or options.skipexisting == 3:
             if os.path.isfile(filepath):
                 print("File already exists. Skipping operation.")
-                alreadyexistslist.append(os.path.normpath(filepath))
+                alreadyexistslist.append(os.path.normpath(source))
                 return True
         if options.skipexisting == 2 or options.skipexisting == 3:
             if "_kcc" in os.path.basename(filepath):
                 print("File(s) were probably created by KCC. Skipping operation.")
-                alreadyprocessedlist.append(os.path.normpath(filepath))
+                alreadyprocessedlist.append(os.path.normpath(source))
                 return True
 
 
