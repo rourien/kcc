@@ -1167,12 +1167,12 @@ def makeBook(source, qtgui=None):
             else:
                 filepath.append(getOutputFilename(source, options.output, '.epub', ''))
             makeZIP(tome + '_comic', tome, True)
-            if not os.path.exists(os.path.split(filepath[-1])[0]):
-                try:
-                    print("Recreating directory tree in ouput directory...")
-                    os.makedirs(os.path.split(filepath[-1])[0])
-                except:
-                    raise UserWarning("Unable to recreate the directory tree in the ouput directory.")
+        if not os.path.exists(os.path.split(filepath[-1])[0]):
+            try:
+                print("Recreating directory tree in ouput directory...")
+                os.makedirs(os.path.split(filepath[-1])[0])
+            except:
+                raise UserWarning("Unable to recreate the directory tree in the ouput directory.")
         move(tome + '_comic.zip', filepath[-1])
         rmtree(tome, True)
         if GUI:
