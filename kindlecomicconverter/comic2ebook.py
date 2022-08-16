@@ -757,16 +757,16 @@ def sanitizeTree(filetree):
                 key = os.path.join(root, name)
                 if key != newKey:
                     os.replace(key, newKey)
-            for name in dirs:
-                tmpName = name
-                slugified = slugify(name, True)
-                while os.path.exists(os.path.join(root, slugified)) and name.upper() != slugified.upper():
-                    slugified += "A"
-                chapterNames[slugified] = tmpName
-                newKey = os.path.join(root, slugified)
-                key = os.path.join(root, name)
-                if key != newKey:
-                    os.replace(key, newKey)
+        for name in dirs:
+            tmpName = name
+            slugified = slugify(name, True)
+            while os.path.exists(os.path.join(root, slugified)) and name.upper() != slugified.upper():
+                slugified += "A"
+            chapterNames[slugified] = tmpName
+            newKey = os.path.join(root, slugified)
+            key = os.path.join(root, name)
+            if key != newKey:
+                os.replace(key, newKey)
     return chapterNames
 
 
