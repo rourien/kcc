@@ -52,7 +52,9 @@ from . import __version__
 
 
 def main(argv=None):
-    global options
+    global options, alreadyexistslist, completedlist
+    alreadyexistslist = []
+    completedlist = []
     parser = makeParser()
     optionstemplate, args = parser.parse_args(argv)
     if len(args) == 0:
@@ -82,6 +84,14 @@ def main(argv=None):
         else:
             print('\nWorking on ' + os.path.normpath(source))
             makeBook(source)
+    if alreadyexistslist:
+        print("\nThe following file(s) already exist in the output directory and were skipped:")
+        for alreadyexists in alreadyexistslist:
+            print(os.path.normpath(alreadyexists))
+    if completedlist:
+        print("\nThe following file(s) were successfully generated:")
+        for completed in completedlist:
+            print(os.path.normpath(completed))
     return 0
 
 
@@ -1105,6 +1115,7 @@ def checkPre(source):
     if checkExists(source):
         filepath = checkExists(source)
         print("File already exists. Skipping operation.")
+        alreadyexistslist.append(os.path.normpath(filepath))
         return True
 
 
@@ -1194,6 +1205,7 @@ def makeBook(source, qtgui=None):
                 except:
                     raise UserWarning("Unable to recreate the directory tree in the ouput directory.")
             move(tome + '_comic.zip', filepath[-1])
+            completedlist.append(filepath[-1])
             rmtree(tome, True)
             if GUI:
                 GUI.progressBarTick.emit('tick')
