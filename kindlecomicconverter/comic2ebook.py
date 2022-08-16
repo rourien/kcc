@@ -81,7 +81,7 @@ def main(argv=None):
                 makeBook(sourcefile)
         else:
             print('\nWorking on ' + os.path.normpath(source))
-        makeBook(source)
+            makeBook(source)
     return 0
 
 
@@ -756,7 +756,7 @@ def sanitizeTree(filetree):
                 key = os.path.join(root, name)
                 if key != newKey:
                     os.replace(key, newKey)
-        return chapterNames
+    return chapterNames
 
 
 def sanitizeTreeKobo(filetree):
