@@ -113,8 +113,10 @@ Options:
                         Automatic mode 2: Consider every subdirectory as
                         separate volume [Default=0]
     --skipexisting=SKIPEXISTING
+                        Skip processing specific files. 0: Do not skip. 1:
                         Skip if wanted file already exists in the output
-                        directory.
+                        directory. 2: Skip if files were already processed. 3:
+                        Use both options 1 and 2. [Default=0]
     --padzeros=PADZEROS
                         Pad "_kcc(#)" with given number of zeros. [Default=0]
     --copycomicinfo   Copy ComicInfo.xml to generated file
