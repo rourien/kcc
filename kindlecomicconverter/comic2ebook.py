@@ -71,7 +71,7 @@ def main(argv=None):
         checkOptions()
         if os.path.isdir(source) and options.batchsplit == 0:
             sourcefiles = []
-            ext = (".cbz",".cbr",".cb7",".pdf")
+            ext = (".cbz",".zip",".cbr",".rar",".cb7",".7z",".pdf")
             for dirpath, dirnames, filenames in os.walk(source):
                 for filename in filenames:
                     if str(filename).endswith(ext):
