@@ -1234,7 +1234,7 @@ def makeBook(source, qtgui=None):
                     options.covers[filepath.index(i)][0].saveToKindle(k, options.covers[filepath.index(i)][1])
     else:
         filepath = checkExists(source)
-        return filepath
+    return filepath
 
 
 def makeMOBIFix(item, uuid):
