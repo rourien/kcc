@@ -114,9 +114,13 @@ Options:
                         separate volume [Default=0]
     --skipexisting=SKIPEXISTING
                         Skip processing specific files. 0: Do not skip. 1:
-                        Skip if wanted file already exists in the output
-                        directory. 2: Skip if files were already processed. 3:
-                        Use both options 1 and 2. [Default=0]
+                        Skip if the wanted file already exists in the output
+                        directory. 2: Skip if the source file was already
+                        processed. 3: Copy the already processed file to the
+                        output directory. 4: Use both options 1 and 2. 5: Use
+                        both options 1 and 3. [Default=0]
+    --copyprocessed     Additional option for --skipexisting. Copy processed
+                        files to the output directory.
     --padzeros=PADZEROS
                         Pad "_kcc(#)" with given number of zeros. [Default=0]
     --copycomicinfo   Copy ComicInfo.xml to generated file

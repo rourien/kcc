@@ -27,7 +27,7 @@ from re import sub
 from stat import S_IWRITE, S_IREAD, S_IEXEC
 from zipfile import ZipFile, ZIP_STORED, ZIP_DEFLATED
 from tempfile import mkdtemp, gettempdir, TemporaryFile
-from shutil import move, copytree, rmtree
+from shutil import move, copytree, rmtree, copy2
 from optparse import OptionParser, OptionGroup
 from multiprocessing import Pool
 from uuid import uuid4
@@ -52,9 +52,10 @@ from . import __version__
 
 
 def main(argv=None):
-    global options, alreadyexistslist, alreadyprocessedlist, completedlist
+    global options, alreadyexistslist, alreadyprocessedlist, copyprocessedlist, completedlist
     alreadyexistslist = []
     alreadyprocessedlist = []
+    copyprocessedlist = []
     completedlist = []
     parser = makeParser()
     optionstemplate, args = parser.parse_args(argv)
@@ -93,6 +94,10 @@ def main(argv=None):
         print("\nThe following file(s) were probably created by KCC and were skipped:")
         for alreadprocessed in alreadyprocessedlist:
             print(os.path.normpath(alreadprocessed))
+    if copyprocessedlist:
+        print("\nThe following file(s) were probably created by KCC and copied to the output directory:")
+        for copyprocessed in copyprocessedlist:
+            print(os.path.normpath(copyprocessed))
     if completedlist:
         print("\nThe following file(s) were successfully generated:")
         for completed in completedlist:
@@ -636,6 +641,16 @@ def getWorkFolder(afile):
     return newpath
 
 
+def getExtension():
+    if options.format == "CBZ":
+        ext = ".cbz"
+    elif options.format == "MOBI":
+        ext = ".mobi"
+    else:
+        ext = ".epub"
+    return ext
+
+
 def getOutputFilename(srcpath, wantedname, ext, tomenumber, checkexists=False):
     if options.copysourcetree:
         copysourcetree = options.copysourcetree
@@ -893,20 +908,22 @@ def detectCorruption(tmppath, orgpath):
                 pass
             else:
                 os.remove(os.path.join(root, name))
-    if alreadyProcessed and options.skipexisting == 2 or alreadyProcessed and options.skipexisting == 3:
-        alreadyprocessedlist.append(os.path.normpath(orgpath))
-        if GUI:
-            GUI.addMessage.emit('File(s) were probably created by KCC. Skipping operation.'
-                                , 'warning', False)
-            GUI.addMessage.emit('', '', False)
-        print("File(s) were probably created by KCC. Skipping operation.")
-        return True
-    elif alreadyProcessed:
-        print("WARNING: Source file(s) were probably created by KCC. The second conversion will decrease quality.")
-        if GUI:
-            GUI.addMessage.emit('Source file(s) were probably created by KCC. The second conversion will decrease quality.'
-                                , 'warning', False)
-            GUI.addMessage.emit('', '', False)
+    if alreadyProcessed:
+        if options.skipexisting > 1:
+            alreadyprocessedlist.append(os.path.normpath(orgpath))
+            if options.skipexisting == 2 or options.skipexisting == 4:
+                print("File(s) were probably created by KCC. Skipping operation.")
+                if GUI:
+                    GUI.addMessage.emit('File(s) were probably created by KCC. Skipping operation.'
+                                        , 'warning', False)
+                    GUI.addMessage.emit('', '', False)
+                return True
+        else:
+            print("WARNING: Source file(s) were probably created by KCC. The second conversion will decrease quality.")
+            if GUI:
+                GUI.addMessage.emit('Source file(s) were probably created by KCC. The second conversion will decrease quality.'
+                                    , 'warning', False)
+                GUI.addMessage.emit('', '', False)
     if imageSmaller > imageNumber * 0.25 and not options.upscale and not options.stretch:
         print("WARNING: More than 25% of images are smaller than target device resolution. "
               "Consider enabling stretching or upscaling to improve readability.")
@@ -981,9 +998,10 @@ def makeParser():
                              help="Split output into multiple files. 0: Don't split 1: Automatic mode "
                                   "2: Consider every subdirectory as separate volume [Default=0]")
     outputOptions.add_option("--skipexisting", type="int", dest="skipexisting", default="0",
-                             help="Skip processing specific files. 0: Do not skip. 1: Skip if wanted file already exists in"
-                             " the output directory. 2: Skip if files were already processed. 3: Use both options 1 and 2."
-                             " [Default=0]")
+                             help="Skip processing specific files. 0: Do not skip. 1: Skip if the wanted file already"
+                             " exists in the output directory. 2: Skip if the source file was already processed."
+                             " 3: Copy the already processed file to the output directory. 4: Use both options 1 and 2."
+                             " 5: Use both options 1 and 3. [Default=0]")
     outputOptions.add_option("--padzeros", type="int", dest="padzeros", default="0",
                              help="Pad \"_kcc(#)\" with given number of zeros. [Default=0]")
     outputOptions.add_option("--copycomicinfo", action="store_true", dest="copycomicinfo", default=False,
@@ -1133,20 +1151,25 @@ def checkPre(source):
         else:
             ext = ".epub"
         filepath = getOutputFilename(source, options.output, ext, '', checkexists=True)
-        if options.skipexisting == 1 or options.skipexisting == 3:
+        if options.skipexisting == 1 or options.skipexisting == 4 or options.skipexisting == 5:
             if os.path.isfile(filepath):
                 print("File already exists. Skipping operation.")
                 alreadyexistslist.append(os.path.normpath(source))
                 return True
-        if options.skipexisting == 2 or options.skipexisting == 3:
-            if "_kcc" in os.path.basename(filepath):
+        if "_kcc" in os.path.basename(filepath):
+            if options.skipexisting == 2 or options.skipexisting == 4:
                 print("File(s) were probably created by KCC. Skipping operation.")
                 alreadyprocessedlist.append(os.path.normpath(source))
+                return True
+            elif options.skipexisting == 3 or options.skipexisting == 5:
+                print("File(s) were probably created by KCC. Copying to output directory.")
+                copyprocessedlist.append(os.path.normpath(filepath))
+                copy2(source,filepath)
                 return True
 
 
 def checkExists(source):
-    if options.skipexisting == 1 or options.skipexisting == 3:
+    if options.skipexisting == 1 or options.skipexisting == 4:
         if options.format == "CBZ":
             ext = ".cbz"
         elif options.format == "MOBI":
@@ -1176,6 +1199,15 @@ def makeBook(source, qtgui=None):
                 comic2panel.main(['-y ' + str(y), '-i', '-m', path], qtgui)
             if options.noprocessing:
                 print("Do not process image, ignore any profile or processing option")
+            elif options.skipexisting == 3 and os.path.normpath(source) in alreadyprocessedlist or \
+                    options.skipexisting == 5 and os.path.normpath(source) in alreadyprocessedlist:
+                print("File(s) were probably created by KCC. Copying to output directory.")
+                copyprocessedlist.append(os.path.normpath(getOutputFilename(
+                    source, options.output, getExtension(), '', checkexists=True)))
+                try:
+                    alreadyprocessedlist.pop()
+                except:
+                    pass
             else:
                 print("Processing images...")
                 if GUI:
@@ -1231,7 +1263,8 @@ def makeBook(source, qtgui=None):
                     except:
                         raise UserWarning("Unable to recreate the directory tree in the ouput directory.")
                 move(tome + '_comic.zip', filepath[-1])
-                completedlist.append(filepath[-1])
+                if filepath and not os.path.normpath(filepath[-1]) in copyprocessedlist:
+                    completedlist.append(filepath[-1])
                 rmtree(tome, True)
                 if GUI:
                     GUI.progressBarTick.emit('tick')
