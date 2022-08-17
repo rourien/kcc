@@ -52,10 +52,11 @@ from . import __version__
 
 
 def main(argv=None):
-    global options, alreadyexistslist, alreadyprocessedlist, copyprocessedlist, completedlist
+    global options, alreadyexistslist, alreadyprocessedlist, copyprocessedlist, multiprocessedlist, completedlist
     alreadyexistslist = []
     alreadyprocessedlist = []
     copyprocessedlist = []
+    multiprocessedlist = []
     completedlist = []
     parser = makeParser()
     optionstemplate, args = parser.parse_args(argv)
@@ -98,6 +99,10 @@ def main(argv=None):
         print("\nThe following file(s) were probably created by KCC and copied to the output directory:")
         for copyprocessed in copyprocessedlist:
             print(os.path.normpath(copyprocessed))
+    if multiprocessedlist:
+        print("\nWARNING: The following file(s) were probably created by KCC. The second conversion decreased quality.:")
+        for multiprocessed in multiprocessedlist:
+            print(os.path.normpath(multiprocessed))
     if completedlist:
         print("\nThe following file(s) were successfully generated:")
         for completed in completedlist:
@@ -920,6 +925,8 @@ def detectCorruption(tmppath, orgpath):
                 return True
         else:
             print("WARNING: Source file(s) were probably created by KCC. The second conversion will decrease quality.")
+            multiprocessedlist.append(os.path.normpath(getOutputFilename(
+                    orgpath, options.output, getExtension(), '', checkexists=True)))
             if GUI:
                 GUI.addMessage.emit('Source file(s) were probably created by KCC. The second conversion will decrease quality.'
                                     , 'warning', False)
