@@ -659,7 +659,10 @@ def getExtension():
 def getOutputFilename(srcpath, wantedname, ext, tomenumber, checkexists=False):
     if options.copysourcetree:
         copysourcetree = options.copysourcetree
-        copysourcetree = copysourcetree + os.path.split(str(srcpath).split(copysourcetree)[1])[0] + os.sep
+        if copysourcetree.endswith("/") or copysourcetree.endswith("\\"):
+            copysourcetree = os.path.split(copysourcetree)[0]
+        copysourcetree = os.path.basename(copysourcetree) + os.path.split(
+                                    str(srcpath).split(copysourcetree)[-1])[0] + os.sep
     else:
         copysourcetree = ""
     if options.padzeros > 0:
