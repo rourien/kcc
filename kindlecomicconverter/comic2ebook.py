@@ -27,7 +27,7 @@ from re import sub
 from stat import S_IWRITE, S_IREAD, S_IEXEC
 from zipfile import ZipFile, ZIP_STORED, ZIP_DEFLATED
 from tempfile import mkdtemp, gettempdir, TemporaryFile
-from shutil import move, copytree, rmtree, copy2
+from shutil import move, copytree, rmtree, copyfile
 from optparse import OptionParser, OptionGroup
 from multiprocessing import Pool
 from uuid import uuid4
@@ -1182,7 +1182,7 @@ def checkPre(source):
             elif options.skipexisting == 3 or options.skipexisting == 5:
                 print("File(s) were probably created by KCC. Copying to output directory.")
                 copyprocessedlist.append(os.path.normpath(filepath))
-                copy2(source,filepath)
+                copyfile()(source,filepath)
                 return True
 
 
@@ -1280,7 +1280,12 @@ def makeBook(source, qtgui=None):
                         os.makedirs(os.path.split(filepath[-1])[0])
                     except:
                         raise UserWarning("Unable to recreate the directory tree in the ouput directory.")
-                move(tome + '_comic.zip', filepath[-1])
+                copyfile(tome + '_comic.zip', filepath[-1])
+                try:
+                    os.remove(tome + '_comic.zip')
+                except FileNotFoundError:
+                    # newly temporary created file is not found. It might have been already deleted
+                    pass
                 if filepath and not os.path.normpath(filepath[-1]) in copyprocessedlist:
                     completedlist.append(filepath[-1])
                 rmtree(tome, True)
