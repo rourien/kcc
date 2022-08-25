@@ -95,6 +95,9 @@ Options:
     -q, --hq            Try to increase the quality of magnification
     -2, --two-panel     Display two not four panels in Panel View mode
     -w, --webtoon       Webtoon processing mode
+    --targetsize=TARGETSIZE
+                        the maximal size of output file in MB. [Default=100MB
+                        for webtoon and 400MB for others]
 
   OUTPUT SETTINGS:
     -o OUTPUT, --output=OUTPUT
@@ -139,6 +142,8 @@ Options:
                         page numbers [Default=2]
     --cp=CROPPINGP, --croppingpower=CROPPINGP
                         Set cropping power [Default=1.0]
+    --cm=CROPPINGM, --croppingminimum=CROPPINGM
+                        Set cropping minimum area ratio [Default=0.0]
     --blackborders      Disable autodetection and force black borders
     --whiteborders      Disable autodetection and force white borders
     --forcecolor        Don't convert images to grayscale
