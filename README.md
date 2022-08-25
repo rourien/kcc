@@ -104,8 +104,9 @@ Options:
                         Output generated file to specified directory or file
     --copysourcetree=COPYSOURCETREE
                         Additional option for use with --output. Name of the
-                        top most directory to be used when recreating the
-                        source directory tree in the output directory.
+                        top most directory or full path to the directory to be
+                        used when recreating the source directory tree in the
+                        output directory.
     -t TITLE, --title=TITLE
                         Comic title [Default=filename or directory name]
     -f FORMAT, --format=FORMAT

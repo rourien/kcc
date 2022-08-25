@@ -1003,8 +1003,9 @@ def makeParser():
     outputOptions.add_option("-o", "--output", action="store", dest="output", default=None,
                              help="Output generated file to specified directory or file")
     outputOptions.add_option("--copysourcetree", action="store", dest="copysourcetree", default=None,
-                             help="Additional option for use with --output. Name of the top most directory to be used"
-                             " when recreating the source directory tree in the output directory.")
+                             help="Additional option for use with --output. Name of the top most directory"
+                             " or full path to the directory to be used when recreating the source directory"
+                             " tree in the output directory.")
     outputOptions.add_option("-t", "--title", action="store", dest="title", default="defaulttitle",
                              help="Comic title [Default=filename or directory name]")
     outputOptions.add_option("-f", "--format", action="store", dest="format", default="Auto",
