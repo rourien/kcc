@@ -1018,7 +1018,7 @@ def makeParser():
                              help="Copy ComicInfo.xml to generated file")
 
     processingOptions.add_option("-n", "--noprocessing", action="store_true", dest="noprocessing", default=False,
-                                 help="Do not modify image and ignore any profil or processing option")
+                                 help="Do not modify image and ignore any profile or processing option")
     processingOptions.add_option("-u", "--upscale", action="store_true", dest="upscale", default=False,
                                  help="Resize images smaller than device's resolution")
     processingOptions.add_option("-s", "--stretch", action="store_true", dest="stretch", default=False,
@@ -1122,6 +1122,7 @@ def checkOptions():
     if not options.format == "CBZ":
         options.copycomicinfo == False
 
+
 def checkTools(source):
     source = source.upper()
     if source.endswith('.CB7') or source.endswith('.7Z') or source.endswith('.RAR') or source.endswith('.CBR') or \
@@ -1208,10 +1209,10 @@ def makeBook(source, qtgui=None):
                 y = image.ProfileData.Profiles[options.profile][1][1]
                 comic2panel.main(['-y ' + str(y), '-i', '-m', path], qtgui)
             if options.noprocessing:
-                print("Do not process image, ignore any profile or processing option")
+                print("Do not process image. Ignore any profile or processing option.")
             elif options.skipexisting == 3 and os.path.normpath(source) in alreadyprocessedlist or \
                     options.skipexisting == 5 and os.path.normpath(source) in alreadyprocessedlist:
-                print("File(s) were probably created by KCC. Copying to output directory.")
+                print("File was probably created by KCC. Copying to output directory.")
                 copyprocessedlist.append(os.path.normpath(getOutputFilename(
                     source, options.output, getExtension(), '', checkexists=True)))
                 try:

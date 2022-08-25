@@ -123,7 +123,7 @@ Options:
                         files to the output directory.
     --padzeros=PADZEROS
                         Pad "_kcc(#)" with given number of zeros. [Default=0]
-    --copycomicinfo   Copy ComicInfo.xml to generated file
+    --copycomicinfo     Copy ComicInfo.xml to generated file
 
   PROCESSING:
     -u, --upscale       Resize images smaller than device's resolution
