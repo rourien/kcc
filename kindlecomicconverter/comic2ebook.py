@@ -28,7 +28,7 @@ from stat import S_IWRITE, S_IREAD, S_IEXEC
 from zipfile import ZipFile, ZIP_STORED, ZIP_DEFLATED
 from tempfile import mkdtemp, gettempdir, TemporaryFile
 from shutil import move, copytree, rmtree, copy2
-from optparse import OptionParser, OptionGroup
+from argparse import ArgumentParser
 from multiprocessing import Pool
 from uuid import uuid4
 from slugify import slugify as slugifyExt
@@ -59,20 +59,20 @@ def main(argv=None):
     multiprocessedlist = []
     completedlist = []
     parser = makeParser()
-    optionstemplate, args = parser.parse_args(argv)
-    if len(args) == 0:
+    args = parser.parse_args(argv)
+    if not argv or args.input == []:
         parser.print_help()
         return 0
     if sys.platform.startswith('win'):
-        sources = set([source for arg in args for source in glob(escape(arg))])
+        sources = set([source for arg in args.input for source in glob(escape(arg))])
     else:
-        sources = set(args)
+        sources = set(args.input)
     if len(sources) == 0:
         print('No matching files found.')
         return 1
     for source in sources:
         source = source.rstrip('\\').rstrip('/')
-        options = copy(optionstemplate)
+        options = copy(args)
         checkOptions()
         if os.path.isdir(source) and options.batchsplit == 0:
             sourcefiles = []
@@ -975,86 +975,91 @@ def makeZIP(zipfilename, basedir, isepub=False):
 
 
 def makeParser():
-    psr = OptionParser(usage="Usage: kcc-c2e [options] comic_file|comic_folder", add_help_option=False)
+    psr = ArgumentParser(prog="Kindle Comic Converter", usage="kcc-c2e [options] [input]",
+                         add_help =False)
 
-    mainOptions = OptionGroup(psr, "MAIN")
-    processingOptions = OptionGroup(psr, "PROCESSING")
-    outputOptions = OptionGroup(psr, "OUTPUT SETTINGS")
-    customProfileOptions = OptionGroup(psr, "CUSTOM PROFILE")
-    otherOptions = OptionGroup(psr, "OTHER")
+    requiredOptions = psr.add_argument_group("REQUIRED")
+    mainOptions = psr.add_argument_group("MAIN")
+    processingOptions = psr.add_argument_group("PROCESSING")
+    outputOptions = psr.add_argument_group("OUTPUT SETTINGS")
+    customProfileOptions = psr.add_argument_group("CUSTOM PROFILE")
+    otherOptions = psr.add_argument_group("OTHER")
+    profiles = ["K1", "K2", "K34", "K578", "KDX", "KPW", "KPW5", "KV", "KO", "KoMT", "KoG", "KoGHD",
+                "KoA", "KoAHD", "KoAH2O", "KoAO", "KoC", "KoL", "KoF"]
+    formats = ["Auto", "MOBI", "EPUB", "CBZ", "KFX"]
 
-    mainOptions.add_option("-p", "--profile", action="store", dest="profile", default="KV",
+    requiredOptions.add_argument("input", action="store", nargs="*", default=None,
+                             help="Full path to comic folder or file(s) to be proccessed. Separate multiple inputs with"
+                             " commas.")
+
+    mainOptions.add_argument("-p", "--profile", metavar="PROFILE", action="store", dest="profile", default="KV", choices=profiles,
                            help="Device profile (Available options: K1, K2, K34, K578, KDX, KPW, KPW5, KV, KO, KoMT, KoG,"
-                                " KoGHD, KoA, KoAHD, KoAH2O, KoAO, KoC, KoL, KoF) [Default=KV]")
-    mainOptions.add_option("-m", "--manga-style", action="store_true", dest="righttoleft", default=False,
+                                " KoGHD, KoA, KoAHD, KoAH2O, KoAO, KoC, KoL, KoF) [Default=%(default)s]")
+    mainOptions.add_argument("-m", "--manga-style", action="store_true", dest="righttoleft", default=False,
                            help="Manga style (right-to-left reading and splitting)")
-    mainOptions.add_option("-q", "--hq", action="store_true", dest="hq", default=False,
+    mainOptions.add_argument("-q", "--hq", action="store_true", dest="hq", default=False,
                            help="Try to increase the quality of magnification")
-    mainOptions.add_option("-2", "--two-panel", action="store_true", dest="autoscale", default=False,
+    mainOptions.add_argument("-2", "--two-panel", action="store_true", dest="autoscale", default=False,
                            help="Display two not four panels in Panel View mode")
-    mainOptions.add_option("-w", "--webtoon", action="store_true", dest="webtoon", default=False,
+    mainOptions.add_argument("-w", "--webtoon", action="store_true", dest="webtoon", default=False,
                            help="Webtoon processing mode"),
 
-    outputOptions.add_option("-o", "--output", action="store", dest="output", default=None,
+    outputOptions.add_argument("-o", "--output", action="store", dest="output", default=None,
                              help="Output generated file to specified directory or file")
-    outputOptions.add_option("--copysourcetree", action="store", dest="copysourcetree", default=None,
+    outputOptions.add_argument("--copysourcetree", action="store", dest="copysourcetree", default=None,
                              help="Additional option for use with --output. Name of the top most directory to be used"
                              " when recreating the source directory tree in the output directory.")
-    outputOptions.add_option("-t", "--title", action="store", dest="title", default="defaulttitle",
+    outputOptions.add_argument("-t", "--title", action="store", dest="title", default="defaulttitle",
                              help="Comic title [Default=filename or directory name]")
-    outputOptions.add_option("-f", "--format", action="store", dest="format", default="Auto",
-                             help="Output format (Available options: Auto, MOBI, EPUB, CBZ, KFX) [Default=Auto]")
-    outputOptions.add_option("-b", "--batchsplit", type="int", dest="batchsplit", default="0",
+    outputOptions.add_argument("-f", "--format", action="store", dest="format", default="Auto", choices=formats,
+                             help="Output format (Available options: Auto, MOBI, EPUB, CBZ, KFX) [Default=%(default)s]")
+    outputOptions.add_argument("-b", "--batchsplit", type=int, dest="batchsplit", default="0", choices=range(0, 3),
                              help="Split output into multiple files. 0: Don't split 1: Automatic mode "
-                                  "2: Consider every subdirectory as separate volume [Default=0]")
-    outputOptions.add_option("--skipexisting", type="int", dest="skipexisting", default="0",
+                                "2: Consider every subdirectory as separate volume [Default=%(default)s]")
+    outputOptions.add_argument("-e", "--skipexisting", type=int, dest="skipexisting", default="0", choices=range(0, 6),
                              help="Skip processing specific files. 0: Do not skip. 1: Skip if the wanted file already"
-                             " exists in the output directory. 2: Skip if the source file was already processed."
-                             " 3: Copy the already processed file to the output directory. 4: Use both options 1 and 2."
-                             " 5: Use both options 1 and 3. [Default=0]")
-    outputOptions.add_option("--padzeros", type="int", dest="padzeros", default="0",
-                             help="Pad \"_kcc(#)\" with given number of zeros. [Default=0]")
-    outputOptions.add_option("--copycomicinfo", action="store_true", dest="copycomicinfo", default=False,
+                                " exists in the output directory. 2: Skip if the source file was already processed."
+                                " 3: Copy the already processed file to the output directory. 4: Use both options 1 and 2."
+                                " 5: Use both options 1 and 3. [Default=%(default)s]")
+    outputOptions.add_argument("-z", "--padzeros", type=int, dest="padzeros", default="0",
+                             help="Pad \"_kcc(#)\" with given number of zeros. [Default=%(default)s]")
+    outputOptions.add_argument("--copycomicinfo", action="store_true", dest="copycomicinfo", default=False,
                              help="Copy ComicInfo.xml to generated file")
 
-    processingOptions.add_option("-n", "--noprocessing", action="store_true", dest="noprocessing", default=False,
+    processingOptions.add_argument("-n", "--noprocessing", action="store_true", dest="noprocessing", default=False,
                                  help="Do not modify image and ignore any profile or processing option")
-    processingOptions.add_option("-u", "--upscale", action="store_true", dest="upscale", default=False,
+    processingOptions.add_argument("-u", "--upscale", action="store_true", dest="upscale", default=False,
                                  help="Resize images smaller than device's resolution")
-    processingOptions.add_option("-s", "--stretch", action="store_true", dest="stretch", default=False,
+    processingOptions.add_argument("-s", "--stretch", action="store_true", dest="stretch", default=False,
                                  help="Stretch images to device's resolution")
-    processingOptions.add_option("-r", "--splitter", type="int", dest="splitter", default="0",
-                                 help="Double page parsing mode. 0: Split 1: Rotate 2: Both [Default=0]")
-    processingOptions.add_option("-g", "--gamma", type="float", dest="gamma", default="0.0",
+    processingOptions.add_argument("-r", "--splitter", type=int, dest="splitter", default="0", choices=range(0, 3),
+                                 help="Double page parsing mode. 0: Split 1: Rotate 2: Both [Default=%(default)s]")
+    processingOptions.add_argument("-g", "--gamma", type=float, dest="gamma", default="0.0",
                                  help="Apply gamma correction to linearize the image [Default=Auto]")
-    processingOptions.add_option("-c", "--cropping", type="int", dest="cropping", default="2",
-                                 help="Set cropping mode. 0: Disabled 1: Margins 2: Margins + page numbers [Default=2]")
-    processingOptions.add_option("--cp", "--croppingpower", type="float", dest="croppingp", default="1.0",
-                                 help="Set cropping power [Default=1.0]")
-    processingOptions.add_option("--blackborders", action="store_true", dest="black_borders", default=False,
+    processingOptions.add_argument("-c", "--cropping", type=int, dest="cropping", default="2", choices=range(0, 3),
+                                 help="Set cropping mode. 0: Disabled 1: Margins 2: Margins + page numbers"
+                                    " [Default=%(default)s]")
+    processingOptions.add_argument("--croppingpower", type=float, dest="croppingp", default="1.0",
+                                 help="Set cropping power [Default=%(default)s]")
+    processingOptions.add_argument("--blackborders", action="store_true", dest="black_borders", default=False,
                                  help="Disable autodetection and force black borders")
-    processingOptions.add_option("--whiteborders", action="store_true", dest="white_borders", default=False,
+    processingOptions.add_argument("--whiteborders", action="store_true", dest="white_borders", default=False,
                                  help="Disable autodetection and force white borders")
-    processingOptions.add_option("--forcecolor", action="store_true", dest="forcecolor", default=False,
+    processingOptions.add_argument("--forcecolor", action="store_true", dest="forcecolor", default=False,
                                  help="Don't convert images to grayscale")
-    processingOptions.add_option("--forcepng", action="store_true", dest="forcepng", default=False,
+    processingOptions.add_argument("--forcepng", action="store_true", dest="forcepng", default=False,
                                  help="Create PNG files instead JPEG")
-    processingOptions.add_option("--mozjpeg", action="store_true", dest="mozjpeg", default=False,
+    processingOptions.add_argument("--mozjpeg", action="store_true", dest="mozjpeg", default=False,
                                  help="Create JPEG files using mozJpeg")
 
-    customProfileOptions.add_option("--customwidth", type="int", dest="customwidth", default=0,
+    customProfileOptions.add_argument("--customwidth", type=int, dest="customwidth", default="0",
                                     help="Replace screen width provided by device profile")
-    customProfileOptions.add_option("--customheight", type="int", dest="customheight", default=0,
+    customProfileOptions.add_argument("--customheight", type=int, dest="customheight", default="0",
                                     help="Replace screen height provided by device profile")
 
-    otherOptions.add_option("-h", "--help", action="help",
+    otherOptions.add_argument("-h", "--help", action="help",
                             help="Show this help message and exit")
 
-    psr.add_option_group(mainOptions)
-    psr.add_option_group(outputOptions)
-    psr.add_option_group(processingOptions)
-    psr.add_option_group(customProfileOptions)
-    psr.add_option_group(otherOptions)
     return psr
 
 
