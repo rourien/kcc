@@ -1182,7 +1182,7 @@ def checkPre(source):
             elif options.skipexisting == 3 or options.skipexisting == 5:
                 print("File(s) were probably created by KCC. Copying to output directory.")
                 copyprocessedlist.append(os.path.normpath(filepath))
-                copyfile()(source,filepath)
+                copyfile(source,filepath)
                 return True
 
 
