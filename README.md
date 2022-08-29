@@ -86,11 +86,13 @@ CLI version of **KCC** is intended for power users. It allows using options that
 Usage: kcc-c2e [options] [input]
 
 MANDATORY:
-  input                 Full path to comic folder(s) or file(s) to be proccessed. Separate multiple inputs with spaces.
+  input                 Full path to comic folder(s) or file(s) to be proccessed. Separate multiple
+                        inputs with spaces.
 
 MAIN:
   -p PROFILE, --profile PROFILE
-                        Device profile (Available options: K1, K2, K34, K578, KDX, KPW, KPW5, KV, KO, KoMT, KoG, KoGHD, KoA, KoAHD, KoAH2O, KoAO, KoC, KoL, KoF) [Default=KV]
+                        Device profile (Available options: K1, K2, K34, K578, KDX, KPW, KPW5, KV, KO,
+                        KoMT, KoG, KoGHD, KoA, KoAHD, KoAH2O, KoAO, KoC, KoL, KoF) [Default=KV]
   -m, --manga-style     Manga style (right-to-left reading and splitting)
   -q, --hq              Try to increase the quality of magnification
   -2, --two-panel       Display two not four panels in Panel View mode
@@ -118,15 +120,20 @@ OUTPUT SETTINGS:
   -o OUTPUT, --output OUTPUT
                         Output generated file to specified directory or file
   --cst COPYSOURCETREE, --copysourcetree COPYSOURCETREE
-                        Additional option for use with --output. Name of the top most directory to be used when recreating the source directory tree in the output directory.
+                        Additional option for use with --output. Name of the top most directory to be used
+                        when recreating the source directory tree in the output directory.
   -t TITLE, --title TITLE
                         Comic title [Default=filename or directory name]
   -f {Auto,MOBI,EPUB,CBZ,KFX}, --format {Auto,MOBI,EPUB,CBZ,KFX}
                         Output format (Available options: Auto, MOBI, EPUB, CBZ, KFX) [Default=Auto]
   -b {0,1,2}, --batchsplit {0,1,2}
-                        Split output into multiple files. 0: Don't split 1: Automatic mode 2: Consider every subdirectory as separate volume [Default=0]
+                        Split output into multiple files. 0: Don't split 1: Automatic mode 2: Consider every
+                        subdirectory as separate volume [Default=0]
   -e {0,1,2,3,4,5}, --skipexisting {0,1,2,3,4,5}
-                        Skip processing specific files. 0: Do not skip. 1: Skip if the wanted file already exists in the output directory. 2: Skip if the source file was already processed. 3: Copy the already processed file to the output directory. 4: Use both options 1 and 2. 5: Use both options 1 and 3. [Default=0]
+                        Skip processing specific files. 0: Do not skip. 1: Skip if the wanted file already exists
+                         in the output directory. 2: Skip if the source file was already processed. 3: Copy the
+                         already processed file to the output directory. 4: Use both options 1 and 2. 5: Use both
+                         options 1 and 3. [Default=0]
   -z PADZEROS, --padzeros PADZEROS
                         Pad "_kcc(#)" with given number of zeros. [Default=0]
   --cci, --copycomicinfo
