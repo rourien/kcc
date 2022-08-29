@@ -107,7 +107,8 @@ PROCESSING:
   -g GAMMA, --gamma GAMMA
                         Apply gamma correction to linearize the image [Default=Auto]
   -c {0,1,2}, --cropping {0,1,2}
-                        Set cropping mode. 0: Disabled 1: Margins 2: Margins + page numbers [Default=2]
+                        Set cropping mode. 0: Disabled 1: Margins 2: Margins + page numbers
+                        [Default=2]
   --cp CROPPINGP, --croppingpower CROPPINGP
                         Set cropping power [Default=1.0]
   --bb, --blackborders  Disable autodetection and force black borders
@@ -120,20 +121,20 @@ OUTPUT SETTINGS:
   -o OUTPUT, --output OUTPUT
                         Output generated file to specified directory or file
   --cst COPYSOURCETREE, --copysourcetree COPYSOURCETREE
-                        Additional option for use with --output. Name of the top most directory to be used
-                        when recreating the source directory tree in the output directory.
+                        Additional option for use with --output. Name of the top most directory to be
+                        used when recreating the source directory tree in the output directory.
   -t TITLE, --title TITLE
                         Comic title [Default=filename or directory name]
   -f {Auto,MOBI,EPUB,CBZ,KFX}, --format {Auto,MOBI,EPUB,CBZ,KFX}
                         Output format (Available options: Auto, MOBI, EPUB, CBZ, KFX) [Default=Auto]
   -b {0,1,2}, --batchsplit {0,1,2}
-                        Split output into multiple files. 0: Don't split 1: Automatic mode 2: Consider every
-                        subdirectory as separate volume [Default=0]
+                        Split output into multiple files. 0: Don't split 1: Automatic mode 2:
+                        Consider every subdirectory as separate volume [Default=0]
   -e {0,1,2,3,4,5}, --skipexisting {0,1,2,3,4,5}
-                        Skip processing specific files. 0: Do not skip. 1: Skip if the wanted file already exists
-                         in the output directory. 2: Skip if the source file was already processed. 3: Copy the
-                         already processed file to the output directory. 4: Use both options 1 and 2. 5: Use both
-                         options 1 and 3. [Default=0]
+                        Skip processing specific files. 0: Do not skip. 1: Skip if the wanted file
+                        already exists in the output directory. 2: Skip if the source file was already
+                        processed. 3: Copy the already processed file to the output directory. 4: Use
+                        both options 1 and 2. 5: Use both options 1 and 3. [Default=0]
   -z PADZEROS, --padzeros PADZEROS
                         Pad "_kcc(#)" with given number of zeros. [Default=0]
   --cci, --copycomicinfo
