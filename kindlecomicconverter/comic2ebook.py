@@ -975,10 +975,10 @@ def makeZIP(zipfilename, basedir, isepub=False):
 
 
 def makeParser():
-    psr = ArgumentParser(prog="Kindle Comic Converter", usage="kcc-c2e [options] [input]",
+    psr = ArgumentParser(prog="kcc-c2e", usage="kcc-c2e [options] [input]",
                          add_help =False)
 
-    requiredOptions = psr.add_argument_group("REQUIRED")
+    requiredOptions = psr.add_argument_group("MANDATORY")
     mainOptions = psr.add_argument_group("MAIN")
     processingOptions = psr.add_argument_group("PROCESSING")
     outputOptions = psr.add_argument_group("OUTPUT SETTINGS")
@@ -988,9 +988,9 @@ def makeParser():
                 "KoA", "KoAHD", "KoAH2O", "KoAO", "KoC", "KoL", "KoF"]
     formats = ["Auto", "MOBI", "EPUB", "CBZ", "KFX"]
 
-    requiredOptions.add_argument("input", action="store", nargs="*", default=None,
-                             help="Full path to comic folder or file(s) to be proccessed. Separate multiple inputs with"
-                             " commas.")
+    requiredOptions.add_argument("input", action="extend", nargs="*", default=None,
+                             help="Full path to comic folder(s) or file(s) to be proccessed. Separate multiple inputs with"
+                             " spaces.")
 
     mainOptions.add_argument("-p", "--profile", metavar="PROFILE", action="store", dest="profile", default="KV", choices=profiles,
                            help="Device profile (Available options: K1, K2, K34, K578, KDX, KPW, KPW5, KV, KO, KoMT, KoG,"
@@ -1006,7 +1006,7 @@ def makeParser():
 
     outputOptions.add_argument("-o", "--output", action="store", dest="output", default=None,
                              help="Output generated file to specified directory or file")
-    outputOptions.add_argument("--copysourcetree", action="store", dest="copysourcetree", default=None,
+    outputOptions.add_argument("--cst", "--copysourcetree", action="store", dest="copysourcetree", default=None,
                              help="Additional option for use with --output. Name of the top most directory to be used"
                              " when recreating the source directory tree in the output directory.")
     outputOptions.add_argument("-t", "--title", action="store", dest="title", default="defaulttitle",
@@ -1023,7 +1023,7 @@ def makeParser():
                                 " 5: Use both options 1 and 3. [Default=%(default)s]")
     outputOptions.add_argument("-z", "--padzeros", type=int, dest="padzeros", default="0",
                              help="Pad \"_kcc(#)\" with given number of zeros. [Default=%(default)s]")
-    outputOptions.add_argument("--copycomicinfo", action="store_true", dest="copycomicinfo", default=False,
+    outputOptions.add_argument("--cci", "--copycomicinfo", action="store_true", dest="copycomicinfo", default=False,
                              help="Copy ComicInfo.xml to generated file")
 
     processingOptions.add_argument("-n", "--noprocessing", action="store_true", dest="noprocessing", default=False,
@@ -1039,22 +1039,22 @@ def makeParser():
     processingOptions.add_argument("-c", "--cropping", type=int, dest="cropping", default="2", choices=range(0, 3),
                                  help="Set cropping mode. 0: Disabled 1: Margins 2: Margins + page numbers"
                                     " [Default=%(default)s]")
-    processingOptions.add_argument("--croppingpower", type=float, dest="croppingp", default="1.0",
+    processingOptions.add_argument("--cp", "--croppingpower", type=float, dest="croppingp", default="1.0",
                                  help="Set cropping power [Default=%(default)s]")
-    processingOptions.add_argument("--blackborders", action="store_true", dest="black_borders", default=False,
+    processingOptions.add_argument("--bb", "--blackborders", action="store_true", dest="black_borders", default=False,
                                  help="Disable autodetection and force black borders")
-    processingOptions.add_argument("--whiteborders", action="store_true", dest="white_borders", default=False,
+    processingOptions.add_argument("--wb", "--whiteborders", action="store_true", dest="white_borders", default=False,
                                  help="Disable autodetection and force white borders")
-    processingOptions.add_argument("--forcecolor", action="store_true", dest="forcecolor", default=False,
+    processingOptions.add_argument("--fc", "--forcecolor", action="store_true", dest="forcecolor", default=False,
                                  help="Don't convert images to grayscale")
-    processingOptions.add_argument("--forcepng", action="store_true", dest="forcepng", default=False,
+    processingOptions.add_argument("--fp", "--forcepng", action="store_true", dest="forcepng", default=False,
                                  help="Create PNG files instead JPEG")
-    processingOptions.add_argument("--mozjpeg", action="store_true", dest="mozjpeg", default=False,
+    processingOptions.add_argument("--mj", "--mozjpeg", action="store_true", dest="mozjpeg", default=False,
                                  help="Create JPEG files using mozJpeg")
 
-    customProfileOptions.add_argument("--customwidth", type=int, dest="customwidth", default="0",
+    customProfileOptions.add_argument("--cw", "--customwidth", type=int, dest="customwidth", default="0",
                                     help="Replace screen width provided by device profile")
-    customProfileOptions.add_argument("--customheight", type=int, dest="customheight", default="0",
+    customProfileOptions.add_argument("--ch", "--customheight", type=int, dest="customheight", default="0",
                                     help="Replace screen height provided by device profile")
 
     otherOptions.add_argument("-h", "--help", action="help",
