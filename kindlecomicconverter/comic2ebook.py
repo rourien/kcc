@@ -1037,6 +1037,9 @@ def makeParser():
                                    help="Resize images smaller than device's resolution")
     processingOptions.add_argument("-s", "--stretch", action="store_true", dest="stretch", default=False,
                                    help="Stretch images to device's resolution")
+    processingOptions.add_argument("--ns","--noshrink", action="store_true", dest="noshrink", default=False,
+                                 help="Add borders or stretch the image to fit device ratio instead of shrinking the"
+                                 " image.")
     processingOptions.add_argument("-r", "--splitter", type=int, dest="splitter", default="0", choices=range(0, 3),
                                    help="Double page parsing mode. 0: Split 1: Rotate 2: Both [Default=%(default)s]")
     processingOptions.add_argument("-g", "--gamma", type=float, dest="gamma", default="0.0",
@@ -1044,10 +1047,10 @@ def makeParser():
     processingOptions.add_argument("-c", "--cropping", type=int, dest="cropping", default="2", choices=range(0, 3),
                                    help="Set cropping mode. 0: Disabled 1: Margins 2: Margins + page numbers"
                                    " [Default=%(default)s]")
-    processingOptions.add_argument("--cp", "--croppingpower", metavar="CROPPINGPOWER", type=float, dest="croppingp",
+    processingOptions.add_argument("--cp", "--croppingpower",metavar="CROPPINGPOWER", type=float, dest="croppingp",
                                    default="1.0", help="Set cropping power [Default=%(default)s]")
-    processingOptions.add_argument("--cm", "--croppingminimum", type="float", dest="croppingm", default="0.0",
-                                 help="Set cropping minimum area ratio [Default=0.0]")
+    processingOptions.add_argument("--cm", "--croppingminimum", metavar="CROPPINGMINIMUM", type="float", dest="croppingm",
+                                   default="0.0", help="Set cropping minimum area ratio [Default=0.0]")
     processingOptions.add_argument("--bb", "--blackborders", action="store_true", dest="black_borders", default=False,
                                    help="Disable autodetection and force black borders")
     processingOptions.add_argument("--wb", "--whiteborders", action="store_true", dest="white_borders", default=False,

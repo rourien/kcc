@@ -109,8 +109,10 @@ PROCESSING:
   -c {0,1,2}, --cropping {0,1,2}
                         Set cropping mode. 0: Disabled 1: Margins 2: Margins + page numbers
                         [Default=2]
-  --cp CROPPINGP, --croppingpower CROPPINGP
+  --cp CROPPINGPOWER, --croppingpower CROPPINGPOWER
                         Set cropping power [Default=1.0]
+  --cM CROPPINGMINIMUM, --croppingminimum CROPPINGMINIMUM
+                        Set cropping minimum area ratio [Default=0.0]
   --bb, --blackborders  Disable autodetection and force black borders
   --wb, --whiteborders  Disable autodetection and force white borders
   --fc, --forcecolor    Don't convert images to grayscale
