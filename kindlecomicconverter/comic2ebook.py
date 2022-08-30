@@ -27,7 +27,7 @@ from re import sub
 from stat import S_IWRITE, S_IREAD, S_IEXEC
 from zipfile import ZipFile, ZIP_STORED, ZIP_DEFLATED
 from tempfile import mkdtemp, gettempdir, TemporaryFile
-from shutil import move, copytree, rmtree, copy2
+from shutil import move, copytree, rmtree, copyfile
 from argparse import ArgumentParser
 from multiprocessing import Pool
 from uuid import uuid4
@@ -593,9 +593,9 @@ def imgFileProcessing(work):
         for i in workImg.payload:
             img = image.ComicPage(opt, *i)
             if opt.cropping == 2 and not opt.webtoon:
-                img.cropPageNumber(opt.croppingp)
+                img.cropPageNumber(opt.croppingp, opt.croppingm)
             if opt.cropping > 0 and not opt.webtoon:
-                img.cropMargin(opt.croppingp)
+                img.cropMargin(opt.croppingp, opt.croppingm)
             img.autocontrastImage()
             img.resizeImage()
             if opt.forcepng and not opt.forcecolor:
@@ -850,7 +850,9 @@ def splitProcess(path, mode):
     output = []
     currentSize = 0
     currentTarget = path
-    if options.webtoon:
+    if options.targetsize:
+        targetSize = options.targetsize * 1048576
+    elif options.webtoon:
         targetSize = 104857600
     else:
         targetSize = 419430400
@@ -1002,12 +1004,16 @@ def makeParser():
                              help="Display two not four panels in Panel View mode")
     mainOptions.add_argument("-w", "--webtoon", action="store_true", dest="webtoon", default=False,
                              help="Webtoon processing mode"),
+    mainOptions.add_argument("--ts","--targetsize", type="int", dest="targetsize", default=None,
+                           help="the maximal size of output file in MB."
+                                " [Default=100MB for webtoon and 400MB for others]")
 
     outputOptions.add_argument("-o", "--output", action="store", dest="output", default=None,
                                help="Output generated file to specified directory or file")
     outputOptions.add_argument("--cst", "--copysourcetree", action="store", dest="copysourcetree", default=None,
-                               help="Additional option for use with --output. Name of the top most directory to be used"
-                               " when recreating the source directory tree in the output directory.")
+                               help="Additional option for use with --output. Name of the top most directory"
+                               " or full path to the directory to be used when recreating the source directory"
+                               " tree in the output directory.")
     outputOptions.add_argument("-t", "--title", action="store", dest="title", default="defaulttitle",
                                help="Comic title [Default=filename or directory name]")
     outputOptions.add_argument("-f", "--format", action="store", dest="format", default="Auto", choices=formats,
@@ -1040,6 +1046,8 @@ def makeParser():
                                    " [Default=%(default)s]")
     processingOptions.add_argument("--cp", "--croppingpower", metavar="CROPPINGPOWER", type=float, dest="croppingp",
                                    default="1.0", help="Set cropping power [Default=%(default)s]")
+    processingOptions.add_argument("--cm", "--croppingminimum", type="float", dest="croppingm", default="0.0",
+                                 help="Set cropping minimum area ratio [Default=0.0]")
     processingOptions.add_argument("--bb", "--blackborders", action="store_true", dest="black_borders", default=False,
                                    help="Disable autodetection and force black borders")
     processingOptions.add_argument("--wb", "--whiteborders", action="store_true", dest="white_borders", default=False,
@@ -1179,7 +1187,7 @@ def checkPre(source):
             elif options.skipexisting == 3 or options.skipexisting == 5:
                 print("File(s) were probably created by KCC. Copying to output directory.")
                 copyprocessedlist.append(os.path.normpath(filepath))
-                copy2(source,filepath)
+                copyfile(source,filepath)
                 return True
 
 
@@ -1277,7 +1285,12 @@ def makeBook(source, qtgui=None):
                         os.makedirs(os.path.split(filepath[-1])[0])
                     except:
                         raise UserWarning("Unable to recreate the directory tree in the ouput directory.")
-                move(tome + '_comic.zip', filepath[-1])
+                copyfile(tome + '_comic.zip', filepath[-1])
+                try:
+                    os.remove(tome + '_comic.zip')
+                except FileNotFoundError:
+                    # newly temporary created file is not found. It might have been already deleted
+                    pass
                 if filepath and not os.path.normpath(filepath[-1]) in copyprocessedlist:
                     completedlist.append(filepath[-1])
                 rmtree(tome, True)

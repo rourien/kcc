@@ -112,6 +112,9 @@ class ComicPageParser:
         self.color = self.colorCheck()
         self.fill = self.fillCheck()
         self.splitCheck()
+        # backwards compatibility for Pillow >9.1.0
+        if not hasattr(Image, 'Resampling'):
+            Image.Resampling = Image
 
     def getImageHistogram(self, image):
         histogram = image.histogram()
@@ -127,7 +130,7 @@ class ComicPageParser:
         dstwidth, dstheight = self.size
         if (width > height) != (dstwidth > dstheight) and width <= dstheight and height <= dstwidth \
                 and not self.opt.webtoon and self.opt.splitter == 1:
-            self.payload.append(['R', self.source, self.image.rotate(90, Image.BICUBIC, True), self.color, self.fill])
+            self.payload.append(['R', self.source, self.image.rotate(90, Image.Resampling.BICUBIC, True), self.color, self.fill])
         elif (width > height) != (dstwidth > dstheight) and not self.opt.webtoon:
             if self.opt.splitter != 1:
                 if width > height:
@@ -145,7 +148,7 @@ class ComicPageParser:
                 self.payload.append(['S1', self.source, pageone, self.color, self.fill])
                 self.payload.append(['S2', self.source, pagetwo, self.color, self.fill])
             if self.opt.splitter > 0:
-                self.payload.append(['R', self.source, self.image.rotate(90, Image.BICUBIC, True),
+                self.payload.append(['R', self.source, self.image.rotate(90, Image.Resampling.BICUBIC, True),
                                     self.color, self.fill])
         else:
             self.payload.append(['N', self.source, self.image, self.color, self.fill])
@@ -231,6 +234,9 @@ class ComicPage:
             self.targetPath = os.path.join(path[0], os.path.splitext(path[1])[0]) + '-KCC-B'
         elif 'S2' in mode:
             self.targetPath = os.path.join(path[0], os.path.splitext(path[1])[0]) + '-KCC-C'
+        # backwards compatibility for Pillow >9.1.0
+        if not hasattr(Image, 'Resampling'):
+            Image.Resampling = Image
 
     def saveToDir(self):
         try:
@@ -283,9 +289,9 @@ class ComicPage:
 
     def resizeImage(self):
         if self.image.size[0] <= self.size[0] and self.image.size[1] <= self.size[1]:
-            method = Image.BICUBIC
+            method = Image.Resampling.BICUBIC
         else:
-            method = Image.LANCZOS
+            method = Image.Resampling.LANCZOS
         if self.opt.stretch or (self.opt.kfx and ('-KCC-B' in self.targetPath or '-KCC-C' in self.targetPath)):
             self.image = self.image.resize(self.size, method)
         elif self.image.size[0] <= self.size[0] and self.image.size[1] <= self.size[1] and not self.opt.upscale:
@@ -294,7 +300,7 @@ class ComicPage:
                 borderh = int((self.size[1] - self.image.size[1]) / 2)
                 self.image = ImageOps.expand(self.image, border=(borderw, borderh), fill=self.fill)
                 if self.image.size[0] != self.size[0] or self.image.size[1] != self.size[1]:
-                    self.image = ImageOps.fit(self.image, self.size, method=Image.BICUBIC, centering=(0.5, 0.5))
+                    self.image = ImageOps.fit(self.image, self.size, method=Image.Resampling.BICUBIC, centering=(0.5, 0.5))
         else:
             if self.opt.format == 'CBZ' or self.opt.kfx:
                 ratioDev = float(self.size[0]) / float(self.size[1])
@@ -310,7 +316,7 @@ class ComicPage:
                 wsize = int((float(self.image.size[0]) * float(hpercent)))
                 self.image = self.image.resize((wsize, self.size[1]), method)
                 if self.image.size[0] > self.size[0] or self.image.size[1] > self.size[1]:
-                    self.image.thumbnail(self.size, Image.LANCZOS)
+                    self.image.thumbnail(self.size, Image.Resampling.LANCZOS)
 
     def getBoundingBox(self, tmptmg):
         min_margin = [int(0.005 * i + 0.5) for i in tmptmg.size]
@@ -326,7 +332,13 @@ class ComicPage:
         )
         return bbox
 
-    def cropPageNumber(self, power):
+    def maybeCrop(self, box, minimum):
+        box_area = (box[2] - box[0]) * (box[3] - box[1])
+        image_area = self.image.size[0] * self.image.size[1]
+        if (box_area / image_area) >= minimum:
+            self.image = self.image.crop(box)
+
+    def cropPageNumber(self, power, minimum):
         if self.fill != 'white':
             tmptmg = self.image.convert(mode='L')
         else:
@@ -335,16 +347,18 @@ class ComicPage:
         tmptmg = tmptmg.filter(ImageFilter.MinFilter(size=3))
         tmptmg = tmptmg.filter(ImageFilter.GaussianBlur(radius=5))
         tmptmg = tmptmg.point(lambda x: (x >= 16 * power) and x)
-        self.image = self.image.crop(tmptmg.getbbox()) if tmptmg.getbbox() else self.image
+        if tmptmg.getbbox():
+            self.maybeCrop(tmptmg.getbbox(), minimum)
 
-    def cropMargin(self, power):
+    def cropMargin(self, power, minimum):
         if self.fill != 'white':
             tmptmg = self.image.convert(mode='L')
         else:
             tmptmg = ImageOps.invert(self.image.convert(mode='L'))
         tmptmg = tmptmg.filter(ImageFilter.GaussianBlur(radius=3))
         tmptmg = tmptmg.point(lambda x: (x >= 16 * power) and x)
-        self.image = self.image.crop(self.getBoundingBox(tmptmg)) if tmptmg.getbbox() else self.image
+        if tmptmg.getbbox():
+            self.maybeCrop(self.getBoundingBox(tmptmg), minimum)
 
 
 class Cover:
@@ -358,13 +372,16 @@ class Cover:
             self.tomeid = tomeid
         self.image = Image.open(source)
         self.process()
+        # backwards compatibility for Pillow >9.1.0
+        if not hasattr(Image, 'Resampling'):
+            Image.Resampling = Image
 
     def process(self):
         self.image = self.image.convert('RGB')
         self.image = ImageOps.autocontrast(self.image)
         if not self.options.forcecolor:
             self.image = self.image.convert('L')
-        self.image.thumbnail(self.options.profileData[1], Image.LANCZOS)
+        self.image.thumbnail(self.options.profileData[1], Image.Resampling.LANCZOS)
         self.save()
 
     def save(self):
@@ -374,7 +391,7 @@ class Cover:
             raise RuntimeError('Failed to save cover.')
 
     def saveToKindle(self, kindle, asin):
-        self.image = self.image.resize((300, 470), Image.ANTIALIAS)
+        self.image = self.image.resize((300, 470), Image.Resampling.LANCZOS)
         try:
             self.image.save(os.path.join(kindle.path.split('documents')[0], 'system', 'thumbnails',
                                          'thumbnail_' + asin + '_EBOK_portrait.jpg'), 'JPEG', optimize=1, quality=85)
