@@ -1004,7 +1004,7 @@ def makeParser():
                              help="Display two not four panels in Panel View mode")
     mainOptions.add_argument("-w", "--webtoon", action="store_true", dest="webtoon", default=False,
                              help="Webtoon processing mode"),
-    mainOptions.add_argument("--ts","--targetsize", type="int", dest="targetsize", default=None,
+    mainOptions.add_argument("--ts","--targetsize", type=int, dest="targetsize", default=None,
                            help="the maximal size of output file in MB."
                                 " [Default=100MB for webtoon and 400MB for others]")
 
@@ -1049,7 +1049,7 @@ def makeParser():
                                    " [Default=%(default)s]")
     processingOptions.add_argument("--cp", "--croppingpower",metavar="CROPPINGPOWER", type=float, dest="croppingp",
                                    default="1.0", help="Set cropping power [Default=%(default)s]")
-    processingOptions.add_argument("--cm", "--croppingminimum", metavar="CROPPINGMINIMUM", type="float", dest="croppingm",
+    processingOptions.add_argument("--cm", "--croppingminimum", metavar="CROPPINGMINIMUM", type=float, dest="croppingm",
                                    default="0.0", help="Set cropping minimum area ratio [Default=0.0]")
     processingOptions.add_argument("--bb", "--blackborders", action="store_true", dest="black_borders", default=False,
                                    help="Disable autodetection and force black borders")
