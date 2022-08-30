@@ -153,7 +153,7 @@ OTHER:
 ### Standalone `kcc-c2p.py` usage:
 
 ```
-Usage: kcc-c2p [options]  [input]
+Usage: kcc-c2p [options] [input]
 
 MANDATORY:
   input                 Full path to comic folder to be proccessed
