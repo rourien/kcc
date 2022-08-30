@@ -221,8 +221,6 @@ def main(argv=None, qtgui=None):
     if args.height > 0:
         args.sourceDir = args.input[0]
         args.targetDir = args.input[0] + "-Splitted"
-        print(args.sourceDir)
-        print(args.targetDir)
         if os.path.isdir(args.sourceDir):
             rmtree(args.targetDir, True)
             copytree(args.sourceDir, args.targetDir)
