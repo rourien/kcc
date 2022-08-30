@@ -292,7 +292,25 @@ class ComicPage:
             method = Image.Resampling.BICUBIC
         else:
             method = Image.Resampling.LANCZOS
-        if self.opt.stretch or (self.opt.kfx and ('-KCC-B' in self.targetPath or '-KCC-C' in self.targetPath)):
+        if self.opt.noshrink and (self.image.size[0] > self.size[0] or self.image.size[1] > self.size[1]):
+            borderw = 0
+            borderh = 0
+            if self.image.size[0] < self.image.size[1]:
+                imagex = self.image.size[0]
+                imagey = int(self.size[1] / self.size[0] * self.image.size[0])
+            elif self.image.size[0] > self.image.size[1]:
+                imagey = self.image.size[1]
+                imagex = int(self.size[0] / self.size[1] * self.image.size[1])
+            if self.opt.stretch:
+                self.image = self.image.resize((imagex, imagey), method)
+            else:
+                if imagex > imagey:
+                    borderw = int(imagex - self.image.size[0])
+                elif imagex < imagey:
+                    borderh = int(imagey - self.image.size[1])
+                self.image = ImageOps.expand(self.image, border=(borderw, borderh), fill=self.fill)
+                self.image = ImageOps.fit(self.image, (imagex, imagey), method, centering=(0.5, 0.5))
+        elif self.opt.stretch or (self.opt.kfx and ('-KCC-B' in self.targetPath or '-KCC-C' in self.targetPath)):
             self.image = self.image.resize(self.size, method)
         elif self.image.size[0] <= self.size[0] and self.image.size[1] <= self.size[1] and not self.opt.upscale:
             if self.opt.format == 'CBZ' or self.opt.kfx:
