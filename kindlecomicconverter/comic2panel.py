@@ -21,7 +21,7 @@
 import os
 import sys
 from shutil import rmtree, copytree, move
-from optparse import OptionParser, OptionGroup
+from argparse import ArgumentParser
 from multiprocessing import Pool
 from PIL import Image, ImageChops, ImageOps, ImageDraw
 from .shared import getImageFileName, walkLevel, walkSort, sanitizeTrace
@@ -102,7 +102,7 @@ def splitImage(work):
         opt = work[2]
         filePath = os.path.join(path, name)
         Image.warnings.simplefilter('error', Image.DecompressionBombWarning)
-        Image.MAX_IMAGE_PIXELS = 1000000000    
+        Image.MAX_IMAGE_PIXELS = 1000000000
         imgOrg = Image.open(filePath).convert('RGB')
         imgProcess = Image.open(filePath).convert('1')
         widthImg, heightImg = imgOrg.size
@@ -194,47 +194,50 @@ def splitImage(work):
 
 def main(argv=None, qtgui=None):
     global options, GUI, splitWorkerPool, splitWorkerOutput, mergeWorkerPool, mergeWorkerOutput
-    parser = OptionParser(usage="Usage: kcc-c2p [options] comic_folder", add_help_option=False)
-    mainOptions = OptionGroup(parser, "MANDATORY")
-    otherOptions = OptionGroup(parser, "OTHER")
-    mainOptions.add_option("-y", "--height", type="int", dest="height", default=0,
+    parser = ArgumentParser(prog="kcc-c2p", usage="Usage: kcc-c2p [options] [input]", add_help=False)
+    mainOptions = parser.add_argument_group("MANDATORY")
+    otherOptions = parser.add_argument_group("OTHER")
+
+    mainOptions.add_argument("input", action="extend", nargs="*", default=None,
+                            help="Full path to comic folder to be proccessed")
+    mainOptions.add_argument("-y", "--height", type=int, dest="height", default="0",
                            help="Height of the target device screen")
-    mainOptions.add_option("-i", "--in-place", action="store_true", dest="inPlace", default=False,
+    mainOptions.add_argument("-i", "--in-place", action="store_true", dest="inPlace", default=False,
                            help="Overwrite source directory")
-    mainOptions.add_option("-m", "--merge", action="store_true", dest="merge", default=False,
+    mainOptions.add_argument("-m", "--merge", action="store_true", dest="merge", default=False,
                            help="Combine every directory into a single image before splitting")
-    otherOptions.add_option("-d", "--debug", action="store_true", dest="debug", default=False,
+    otherOptions.add_argument("-d", "--debug", action="store_true", dest="debug", default=False,
                             help="Create debug file for every split image")
-    otherOptions.add_option("-h", "--help", action="help",
+    otherOptions.add_argument("-h", "--help", action="help",
                             help="Show this help message and exit")
-    parser.add_option_group(mainOptions)
-    parser.add_option_group(otherOptions)
-    options, args = parser.parse_args(argv)
+    args = parser.parse_args(argv)
     if qtgui:
         GUI = qtgui
     else:
         GUI = None
-    if len(args) != 1:
+    if not argv or args.input == []:
         parser.print_help()
         return 1
-    if options.height > 0:
-        options.sourceDir = args[0]
-        options.targetDir = args[0] + "-Splitted"
-        if os.path.isdir(options.sourceDir):
-            rmtree(options.targetDir, True)
-            copytree(options.sourceDir, options.targetDir)
+    if args.height > 0:
+        args.sourceDir = args.input[0]
+        args.targetDir = args.input[0] + "-Splitted"
+        print(args.sourceDir)
+        print(args.targetDir)
+        if os.path.isdir(args.sourceDir):
+            rmtree(args.targetDir, True)
+            copytree(args.sourceDir, args.targetDir)
             work = []
             pagenumber = 1
             splitWorkerOutput = []
             splitWorkerPool = Pool(maxtasksperchild=10)
-            if options.merge:
+            if args.merge:
                 print("Merging images...")
                 directoryNumer = 1
                 mergeWork = []
                 mergeWorkerOutput = []
                 mergeWorkerPool = Pool(maxtasksperchild=10)
-                mergeWork.append([options.targetDir])
-                for root, dirs, files in os.walk(options.targetDir, False):
+                mergeWork.append([args.targetDir])
+                for root, dirs, files in os.walk(args.targetDir, False):
                     dirs, files = walkSort(dirs, files)
                     for directory in dirs:
                         directoryNumer += 1
@@ -247,18 +250,18 @@ def main(argv=None, qtgui=None):
                 mergeWorkerPool.close()
                 mergeWorkerPool.join()
                 if GUI and not GUI.conversionAlive:
-                    rmtree(options.targetDir, True)
+                    rmtree(args.targetDir, True)
                     raise UserWarning("Conversion interrupted.")
                 if len(mergeWorkerOutput) > 0:
-                    rmtree(options.targetDir, True)
+                    rmtree(args.targetDir, True)
                     raise RuntimeError("One of workers crashed. Cause: " + mergeWorkerOutput[0][0],
                                        mergeWorkerOutput[0][1])
             print("Splitting images...")
-            for root, _, files in os.walk(options.targetDir, False):
+            for root, _, files in os.walk(args.targetDir, False):
                 for name in files:
                     if getImageFileName(name) is not None:
                         pagenumber += 1
-                        work.append([root, name, options])
+                        work.append([root, name, args])
                     else:
                         os.remove(os.path.join(root, name))
             if GUI:
@@ -271,17 +274,17 @@ def main(argv=None, qtgui=None):
                 splitWorkerPool.close()
                 splitWorkerPool.join()
                 if GUI and not GUI.conversionAlive:
-                    rmtree(options.targetDir, True)
+                    rmtree(args.targetDir, True)
                     raise UserWarning("Conversion interrupted.")
                 if len(splitWorkerOutput) > 0:
-                    rmtree(options.targetDir, True)
+                    rmtree(args.targetDir, True)
                     raise RuntimeError("One of workers crashed. Cause: " + splitWorkerOutput[0][0],
                                        splitWorkerOutput[0][1])
-                if options.inPlace:
-                    rmtree(options.sourceDir)
-                    move(options.targetDir, options.sourceDir)
+                if args.inPlace:
+                    rmtree(args.sourceDir)
+                    move(args.targetDir, args.sourceDir)
             else:
-                rmtree(options.targetDir, True)
+                rmtree(args.targetDir, True)
                 raise UserWarning("Source directory is empty.")
         else:
             raise UserWarning("Provided path is not a directory.")

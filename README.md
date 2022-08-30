@@ -83,99 +83,90 @@ CLI version of **KCC** is intended for power users. It allows using options that
 ### Standalone `kcc-c2e.py` usage:
 
 ```
-Usage: kcc-c2e [options] comic_file|comic_folder
+Usage: kcc-c2e [options] [input]
 
-Options:
-  MAIN:
-    -p PROFILE, --profile=PROFILE
-                        Device profile (Available options: K1, K2, K34, K578,
-                        KDX, KPW, KPW5, KV, KO, KoMT, KoG, KoGHD, KoA, KoAHD, KoAH2O,
-                        KoAO, KoC, KoL, KoF) [Default=KV]
-    -m, --manga-style   Manga style (right-to-left reading and splitting)
-    -q, --hq            Try to increase the quality of magnification
-    -2, --two-panel     Display two not four panels in Panel View mode
-    -w, --webtoon       Webtoon processing mode
-    --targetsize=TARGETSIZE
-                        the maximal size of output file in MB. [Default=100MB
-                        for webtoon and 400MB for others]
+MANDATORY:
+  input                 Full path to comic folder(s) or file(s) to be proccessed. Separate multiple
+                        inputs with spaces.
 
-  OUTPUT SETTINGS:
-    -o OUTPUT, --output=OUTPUT
-                        Output generated file to specified directory or file
-    --copysourcetree=COPYSOURCETREE
-                        Additional option for use with --output. Name of the
-                        top most directory or full path to the directory to be
-                        used when recreating the source directory tree in the
-                        output directory.
-    -t TITLE, --title=TITLE
-                        Comic title [Default=filename or directory name]
-    -f FORMAT, --format=FORMAT
-                        Output format (Available options: Auto, MOBI, EPUB,
-                        CBZ, KFX) [Default=Auto]
-    -b BATCHSPLIT, --batchsplit=BATCHSPLIT
-                        Split output into multiple files. 0: Don't split 1:
-                        Automatic mode 2: Consider every subdirectory as
-                        separate volume [Default=0]
-    --skipexisting=SKIPEXISTING
-                        Skip processing specific files. 0: Do not skip. 1:
-                        Skip if the wanted file already exists in the output
-                        directory. 2: Skip if the source file was already
-                        processed. 3: Copy the already processed file to the
-                        output directory. 4: Use both options 1 and 2. 5: Use
-                        both options 1 and 3. [Default=0]
-    --padzeros=PADZEROS
-                        Pad "_kcc(#)" with given number of zeros. [Default=0]
-    --copycomicinfo     Copy ComicInfo.xml to generated file
+MAIN:
+  -p PROFILE, --profile PROFILE
+                        Device profile (Available options: K1, K2, K34, K578, KDX, KPW, KPW5, KV, KO,
+                        KoMT, KoG, KoGHD, KoA, KoAHD, KoAH2O, KoAO, KoC, KoL, KoF) [Default=KV]
+  -m, --manga-style     Manga style (right-to-left reading and splitting)
+  -q, --hq              Try to increase the quality of magnification
+  -2, --two-panel       Display two not four panels in Panel View mode
+  -w, --webtoon         Webtoon processing mode
 
-  PROCESSING:
-    -u, --upscale       Resize images smaller than device's resolution
-    -s, --stretch       Stretch images to device's resolution
-    --noshrink          Add borders or stretch the image to fit device ratio
-                        instead of shrinking the image.
-    -r SPLITTER, --splitter=SPLITTER
-                        Double page parsing mode. 0: Split 1: Rotate 2: Both
-                        [Default=0]
-    -g GAMMA, --gamma=GAMMA
-                        Apply gamma correction to linearize the image
-                        [Default=Auto]
-    -c CROPPING, --cropping=CROPPING
-                        Set cropping mode. 0: Disabled 1: Margins 2: Margins +
-                        page numbers [Default=2]
-    --cp=CROPPINGP, --croppingpower=CROPPINGP
+PROCESSING:
+  -n, --noprocessing    Do not modify image and ignore any profile or processing option
+  -u, --upscale         Resize images smaller than device's resolution
+  -s, --stretch         Stretch images to device's resolution
+  -r {0,1,2}, --splitter {0,1,2}
+                        Double page parsing mode. 0: Split 1: Rotate 2: Both [Default=0]
+  -g GAMMA, --gamma GAMMA
+                        Apply gamma correction to linearize the image [Default=Auto]
+  -c {0,1,2}, --cropping {0,1,2}
+                        Set cropping mode. 0: Disabled 1: Margins 2: Margins + page numbers
+                        [Default=2]
+  --cp CROPPINGPOWER, --croppingpower CROPPINGPOWER
                         Set cropping power [Default=1.0]
-    --cm=CROPPINGM, --croppingminimum=CROPPINGM
+  --cM CROPPINGMINIMUM, --croppingminimum CROPPINGMINIMUM
                         Set cropping minimum area ratio [Default=0.0]
-    --blackborders      Disable autodetection and force black borders
-    --whiteborders      Disable autodetection and force white borders
-    --forcecolor        Don't convert images to grayscale
-    --forcepng          Create PNG files instead JPEG
-    --mozjpeg           Create JPEG files using mozJpeg
+  --bb, --blackborders  Disable autodetection and force black borders
+  --wb, --whiteborders  Disable autodetection and force white borders
+  --fc, --forcecolor    Don't convert images to grayscale
+  --fp, --forcepng      Create PNG files instead JPEG
+  --mj, --mozjpeg       Create JPEG files using mozJpeg
 
-  CUSTOM PROFILE:
-    --customwidth=CUSTOMWIDTH
+OUTPUT SETTINGS:
+  -o OUTPUT, --output OUTPUT
+                        Output generated file to specified directory or file
+  --cst COPYSOURCETREE, --copysourcetree COPYSOURCETREE
+                        Additional option for use with --output. Name of the top most directory to be
+                        used when recreating the source directory tree in the output directory.
+  -t TITLE, --title TITLE
+                        Comic title [Default=filename or directory name]
+  -f {Auto,MOBI,EPUB,CBZ,KFX}, --format {Auto,MOBI,EPUB,CBZ,KFX}
+                        Output format (Available options: Auto, MOBI, EPUB, CBZ, KFX) [Default=Auto]
+  -b {0,1,2}, --batchsplit {0,1,2}
+                        Split output into multiple files. 0: Don't split 1: Automatic mode 2:
+                        Consider every subdirectory as separate volume [Default=0]
+  -e {0,1,2,3,4,5}, --skipexisting {0,1,2,3,4,5}
+                        Skip processing specific files. 0: Do not skip. 1: Skip if the wanted file
+                        already exists in the output directory. 2: Skip if the source file was already
+                        processed. 3: Copy the already processed file to the output directory. 4: Use
+                        both options 1 and 2. 5: Use both options 1 and 3. [Default=0]
+  -z PADZEROS, --padzeros PADZEROS
+                        Pad "_kcc(#)" with given number of zeros. [Default=0]
+  --cci, --copycomicinfo
+                        Copy ComicInfo.xml to generated file
+
+CUSTOM PROFILE:
+  --cw CUSTOMWIDTH, --customwidth CUSTOMWIDTH
                         Replace screen width provided by device profile
-    --customheight=CUSTOMHEIGHT
+  --ch CUSTOMHEIGHT, --customheight CUSTOMHEIGHT
                         Replace screen height provided by device profile
 
-  OTHER:
-    -h, --help          Show this help message and exit
+OTHER:
+  -h, --help            Show this help message and exit
 ```
 
 ### Standalone `kcc-c2p.py` usage:
 
 ```
-Usage: kcc-c2p [options] comic_folder
+Usage: kcc-c2p [options] [input]
 
-Options:
-  MANDATORY:
-    -y HEIGHT, --height=HEIGHT
+MANDATORY:
+  input                 Full path to comic folder to be proccessed
+  -y HEIGHT, --height HEIGHT
                         Height of the target device screen
-    -i, --in-place      Overwrite source directory
-    -m, --merge         Combine every directory into a single image before splitting
+  -i, --in-place        Overwrite source directory
+  -m, --merge           Combine every directory into a single image before splitting
 
-  OTHER:
-    -d, --debug         Create debug file for every split image
-    -h, --help          Show this help message and exit
+OTHER:
+  -d, --debug           Create debug file for every split image
+  -h, --help            Show this help message and exit
 ```
 
 ## CREDITS
