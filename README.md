@@ -130,6 +130,8 @@ Options:
   PROCESSING:
     -u, --upscale       Resize images smaller than device's resolution
     -s, --stretch       Stretch images to device's resolution
+    --noshrink          Add borders or stretch the image to fit device ratio
+                        instead of shrinking the image.
     -r SPLITTER, --splitter=SPLITTER
                         Double page parsing mode. 0: Split 1: Rotate 2: Both
                         [Default=0]

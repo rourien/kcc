@@ -1029,6 +1029,9 @@ def makeParser():
                                  help="Resize images smaller than device's resolution")
     processingOptions.add_option("-s", "--stretch", action="store_true", dest="stretch", default=False,
                                  help="Stretch images to device's resolution")
+    processingOptions.add_option("--noshrink", action="store_true", dest="noshrink", default=False,
+                                 help="Add borders or stretch the image to fit device ratio instead of shrinking the"
+                                 " image.")
     processingOptions.add_option("-r", "--splitter", type="int", dest="splitter", default="0",
                                  help="Double page parsing mode. 0: Split 1: Rotate 2: Both [Default=0]")
     processingOptions.add_option("-g", "--gamma", type="float", dest="gamma", default="0.0",
