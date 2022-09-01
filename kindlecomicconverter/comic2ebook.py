@@ -20,6 +20,7 @@
 
 import os
 import sys
+import logging
 from time import strftime, gmtime
 from copy import copy
 from glob import glob, escape
@@ -40,7 +41,7 @@ try:
     from PyQt5 import QtCore
 except ImportError:
     QtCore = None
-from .shared import md5Checksum, getImageFileName, walkSort, walkLevel, sanitizeTrace
+from .shared import createLogger, md5Checksum, getImageFileName, walkSort, walkLevel, sanitizeTrace, intro
 from . import comic2panel
 from . import image
 from . import comicarchive
@@ -52,27 +53,32 @@ from . import __version__
 
 
 def main(argv=None):
-    global options, alreadyexistslist, alreadyprocessedlist, copyprocessedlist, multiprocessedlist, completedlist
+    global logger, options, alreadyexistslist, alreadyprocessedlist, copyprocessedlist, \
+    multiprocessedlist, completedlist
     alreadyexistslist = []
     alreadyprocessedlist = []
     copyprocessedlist = []
     multiprocessedlist = []
     completedlist = []
+    logname = "kcc-c2e"
     parser = makeParser()
     args = parser.parse_args(argv)
-    if not argv or args.input == []:
+    options = copy(args)
+    createLogger(logname, options)
+    logger = logging.getLogger(logname)
+    intro(logname)
+    if not argv or options.input == []:
         parser.print_help()
         return 0
     if sys.platform.startswith('win'):
-        sources = set([source for arg in args.input for source in glob(escape(arg))])
+        sources = set([source for arg in options.input for source in glob(escape(arg))])
     else:
-        sources = set(args.input)
+        sources = set(options.input)
     if len(sources) == 0:
-        print('No matching files found.')
+        logger.error('No matching files found.')
         return 1
     for source in sources:
         source = source.rstrip('\\').rstrip('/')
-        options = copy(args)
         checkOptions()
         if os.path.isdir(source) and options.batchsplit == 0:
             sourcefiles = []
@@ -82,31 +88,38 @@ def main(argv=None):
                     if str(filename).endswith(ext):
                         sourcefiles.append(os.path.join(dirpath,filename))
             for sourcefile in sourcefiles:
-                print('\nWorking on ' + os.path.normpath(sourcefile))
+                logger.info("")
+                logger.info('Working on ' + os.path.normpath(sourcefile))
                 makeBook(sourcefile)
         else:
-            print('\nWorking on ' + os.path.normpath(source))
+            logger.info("")
+            logger.info('Working on ' + os.path.normpath(source))
             makeBook(source)
     if alreadyexistslist:
-        print("\nThe following file(s) already exist in the output directory and were skipped:")
+        logger.info("")
+        logger.info("The following file(s) already exist in the output directory and were skipped:")
         for alreadyexists in alreadyexistslist:
-            print(os.path.normpath(alreadyexists))
+            logger.info(os.path.normpath(alreadyexists))
     if alreadyprocessedlist:
-        print("\nThe following file(s) were probably created by KCC and were skipped:")
+        logger.info("")
+        logger.info("The following file(s) were probably created by KCC and were skipped:")
         for alreadprocessed in alreadyprocessedlist:
-            print(os.path.normpath(alreadprocessed))
+            logger.info(os.path.normpath(alreadprocessed))
     if copyprocessedlist:
-        print("\nThe following file(s) were probably created by KCC and copied to the output directory:")
+        logger.info("")
+        logger.info("The following file(s) were probably created by KCC and copied to the output directory:")
         for copyprocessed in copyprocessedlist:
-            print(os.path.normpath(copyprocessed))
+            logger.info(os.path.normpath(copyprocessed))
     if multiprocessedlist:
-        print("\nWARNING: The following file(s) were probably created by KCC. The second conversion decreased quality.:")
+        logger.info("")
+        logger.warning("WARNING: The following file(s) were probably created by KCC. The second conversion decreased quality.:")
         for multiprocessed in multiprocessedlist:
-            print(os.path.normpath(multiprocessed))
+            logger.info(os.path.normpath(multiprocessed))
     if completedlist:
-        print("\nThe following file(s) were successfully generated:")
+        logger.info("")
+        logger.info("The following file(s) were successfully generated:")
         for completed in completedlist:
-            print(os.path.normpath(completed))
+            logger.info(os.path.normpath(completed))
     return 0
 
 
@@ -556,16 +569,20 @@ def imgDirectoryProcessing(path):
         workerPool.join()
         if GUI and not GUI.conversionAlive:
             rmtree(os.path.join(path, '..', '..'), True)
-            raise UserWarning("Conversion interrupted.")
+            # raise UserWarning("Conversion interrupted.")
+            sys.exit(logger.exception("CRITICAL: Conversion interrupted."))
         if len(workerOutput) > 0:
             rmtree(os.path.join(path, '..', '..'), True)
-            raise RuntimeError("One of workers crashed. Cause: " + workerOutput[0][0], workerOutput[0][1])
+            # raise RuntimeError("One of workers crashed. Cause: " + workerOutput[0][0], workerOutput[0][1])
+            sys.exit(logger.exception(workerOutput[0][1] + "CRITICAL: One of workers crashed. Cause: " +
+                             workerOutput[0][0]))
         for file in options.imgOld:
             if os.path.isfile(file):
                 os.remove(file)
     else:
         rmtree(os.path.join(path, '..', '..'), True)
-        raise UserWarning("Source directory is empty.")
+        # raise UserWarning("Source directory is empty.")
+        sys.exit(logger.exception("CRITICAL: Source directory is empty."))
 
 
 def imgFileProcessingTick(output):
@@ -609,7 +626,8 @@ def imgFileProcessing(work):
 def getWorkFolder(afile):
     if os.path.isdir(afile):
         if disk_usage(gettempdir())[2] < getDirectorySize(afile) * 2.5:
-            raise UserWarning("Not enough disk space to perform conversion.")
+            # raise UserWarning("Not enough disk space to perform conversion.")
+            sys.exit(logger.exception("CRITICAL: Not enough disk space to perform conversion."))
         workdir = mkdtemp('', 'KCC-')
         try:
             os.rmdir(workdir)
@@ -619,10 +637,13 @@ def getWorkFolder(afile):
             return workdir
         except Exception:
             rmtree(workdir, True)
-            raise UserWarning("Failed to prepare a workspace.")
+            # raise UserWarning("Failed to prepare a workspace.")
+            logger.exception(err)
+            sys.exit(logger.exception("CRITICAL: Failed to prepare a workspace."))
     elif os.path.isfile(afile):
         if disk_usage(gettempdir())[2] < os.path.getsize(afile) * 2.5:
-            raise UserWarning("Not enough disk space to perform conversion.")
+            # raise UserWarning("Not enough disk space to perform conversion.")
+            sys.exit(logger.exception("CRITICAL: Not enough disk space to perform conversion."))
         if afile.lower().endswith('.pdf'):
             pdf = pdfjpgextract.PdfJpgExtract(afile)
             path, njpg = pdf.extract()
@@ -634,11 +655,16 @@ def getWorkFolder(afile):
             try:
                 cbx = comicarchive.ComicArchive(afile)
                 path = cbx.extract(workdir)
-            except OSError as e:
+            except OSError as err:
                 rmtree(workdir, True)
-                raise UserWarning(e.strerror)
+                # raise UserWarning(e.strerror)
+                sys.exit(logger.exception("CRITICAL: " + err.strerror))
+
     else:
-        raise UserWarning("Failed to open source file/directory.")
+        # raise UserWarning("Failed to open source file/directory.")
+        sys.exit(logger.exception("CRITICAL: Failed to open source file/directory."))
+
+
     sanitizePermissions(path)
     newpath = mkdtemp('', 'KCC-')
     copytree(path, os.path.join(newpath, 'OEBPS', 'Images'))
@@ -843,7 +869,8 @@ def splitDirectory(path):
             path.append(tome)
         return path
     else:
-        raise UserWarning('Unsupported directory structure.')
+        # raise UserWarning('Unsupported directory structure.')
+        sys.exit(logger.exception("CRITICAL: Unsupported directory structure."))
 
 
 def splitProcess(path, mode):
@@ -899,7 +926,8 @@ def detectCorruption(tmppath, orgpath):
                 pathOrg = orgpath + path.split('OEBPS' + os.path.sep + 'Images')[1]
                 if os.path.getsize(path) == 0:
                     rmtree(os.path.join(tmppath, '..', '..'), True)
-                    raise RuntimeError('Image file %s is corrupted.' % pathOrg)
+                    # raise RuntimeError('Image file %s is corrupted.' % pathOrg)
+                    sys.exit(logger.exception("CRITICAL: Image file %s is corrupted." % pathOrg))
                 try:
                     img = Image.open(path)
                     img.verify()
@@ -911,10 +939,12 @@ def detectCorruption(tmppath, orgpath):
                 except Exception as err:
                     rmtree(os.path.join(tmppath, '..', '..'), True)
                     if 'decoder' in str(err) and 'not available' in str(err):
-                        raise RuntimeError('Pillow was compiled without JPG and/or PNG decoder.')
+                        # raise RuntimeError('Pillow was compiled without JPG and/or PNG decoder.')
+                        sys.exit(logger.exception("CRITICAL: Pillow was compiled without JPG and/or PNG decoder." ))
                     else:
-                        raise RuntimeError('Image file %s is corrupted. Error: %s' % (pathOrg, str(err)))
-            elif options.copycomicinfo and name == "ComicInfo.xml":
+                        # raise RuntimeError('Image file %s is corrupted. Error: %s' % (pathOrg, str(err)))
+                        sys.exit(logger.exception("CRITICAL: Image file %s is corrupted. Error: %s"  %
+                                                (pathOrg, str(err))))
                 pass
             else:
                 os.remove(os.path.join(root, name))
@@ -922,14 +952,14 @@ def detectCorruption(tmppath, orgpath):
         if options.skipexisting > 1:
             alreadyprocessedlist.append(os.path.normpath(orgpath))
             if options.skipexisting == 2 or options.skipexisting == 4:
-                print("File(s) were probably created by KCC. Skipping operation.")
+                logger.info("File(s) were probably created by KCC. Skipping operation.")
                 if GUI:
                     GUI.addMessage.emit('File(s) were probably created by KCC. Skipping operation.'
                                         , 'warning', False)
                     GUI.addMessage.emit('', '', False)
                 return True
         else:
-            print("WARNING: Source file(s) were probably created by KCC. The second conversion will decrease quality.")
+            logger.warning("WARNING: Source file(s) were probably created by KCC. The second conversion will decrease quality.")
             multiprocessedlist.append(os.path.normpath(getOutputFilename(
                     orgpath, options.output, getExtension(), '', checkexists=True)))
             if GUI:
@@ -937,8 +967,8 @@ def detectCorruption(tmppath, orgpath):
                                     , 'warning', False)
                 GUI.addMessage.emit('', '', False)
     if imageSmaller > imageNumber * 0.25 and not options.upscale and not options.stretch:
-        print("WARNING: More than 25% of images are smaller than target device resolution. "
-              "Consider enabling stretching or upscaling to improve readability.")
+        logger.warning("WARNING: More than 25% of images are smaller than target device resolution. "
+            "Consider enabling stretching or upscaling to improve readability.")
         if GUI:
             GUI.addMessage.emit('More than 25% of images are smaller than target device resolution.', 'warning', False)
             GUI.addMessage.emit('Consider enabling stretching or upscaling to improve readability.', 'warning', False)
@@ -1067,6 +1097,8 @@ def makeParser():
     customProfileOptions.add_argument("--ch", "--customheight", type=int, dest="customheight", default="0",
                                       help="Replace screen height provided by device profile")
 
+    otherOptions.add_argument("-l", "--log", action="store_true", dest="log",
+                                help="Write logs to /kcc/logs/kcc-c2e.log")
     otherOptions.add_argument("-h", "--help", action="help",
                               help="Show this help message and exit")
 
@@ -1145,13 +1177,13 @@ def checkTools(source):
         process = Popen('7z', stdout=PIPE, stderr=STDOUT, stdin=PIPE, shell=True)
         process.communicate()
         if process.returncode != 0 and process.returncode != 7:
-            print('ERROR: 7z is missing!')
+            logger.critical('CRITICAL: 7z is missing!')
             exit(1)
     if options.format == 'MOBI':
         kindleGenExitCode = Popen('kindlegen -locale en', stdout=PIPE, stderr=STDOUT, stdin=PIPE, shell=True)
         kindleGenExitCode.communicate()
         if kindleGenExitCode.returncode != 0:
-            print('ERROR: KindleGen is missing!')
+            logger.critical('CRITICAL: KindleGen is missing!')
             exit(1)
 
 
@@ -1169,8 +1201,11 @@ def checkPre(source):
     try:
         with TemporaryFile(prefix='KCC-', dir=src):
             pass
-    except Exception:
-        raise UserWarning("Target directory is not writable.")
+    except Exception as err:
+        # raise UserWarning("Target directory is not writable.")
+        logger.exception(err)
+        sys.exit(logger.exception("CRITICAL: Target directory is not writable."))
+
     if options.skipexisting > 0:
         if options.format == "CBZ":
             ext = ".cbz"
@@ -1179,16 +1214,16 @@ def checkPre(source):
         filepath = getOutputFilename(source, options.output, ext, '', checkexists=True)
         if options.skipexisting == 1 or options.skipexisting == 4 or options.skipexisting == 5:
             if os.path.isfile(filepath):
-                print("File already exists. Skipping operation.")
+                logger.info("File already exists. Skipping operation.")
                 alreadyexistslist.append(os.path.normpath(source))
                 return True
         if "_kcc" in os.path.basename(filepath):
             if options.skipexisting == 2 or options.skipexisting == 4:
-                print("File(s) were probably created by KCC. Skipping operation.")
+                logger.info("File(s) were probably created by KCC. Skipping operation.")
                 alreadyprocessedlist.append(os.path.normpath(source))
                 return True
             elif options.skipexisting == 3 or options.skipexisting == 5:
-                print("File(s) were probably created by KCC. Copying to output directory.")
+                logger.info("File(s) were probably created by KCC. Copying to output directory.")
                 copyprocessedlist.append(os.path.normpath(filepath))
                 copyfile(source,filepath)
                 return True
@@ -1215,19 +1250,19 @@ def makeBook(source, qtgui=None):
     else:
         checkTools(source)
     if not checkPre(source):
-        print("Preparing source images...")
+        logger.info("Preparing source images...")
         path = getWorkFolder(source)
-        print("Checking images...")
+        logger.info("Checking images...")
         getComicInfo(os.path.join(path, "OEBPS", "Images"), source)
         if not detectCorruption(os.path.join(path, "OEBPS", "Images"), source):
             if options.webtoon:
                 y = image.ProfileData.Profiles[options.profile][1][1]
                 comic2panel.main(['-y ' + str(y), '-i', '-m', path], qtgui)
             if options.noprocessing:
-                print("Do not process image. Ignore any profile or processing option.")
+                logger.info("Do not process image. Ignore any profile or processing option.")
             elif options.skipexisting == 3 and os.path.normpath(source) in alreadyprocessedlist or \
                     options.skipexisting == 5 and os.path.normpath(source) in alreadyprocessedlist:
-                print("File was probably created by KCC. Copying to output directory.")
+                logger.info("File was probably created by KCC. Copying to output directory.")
                 copyprocessedlist.append(os.path.normpath(getOutputFilename(
                     source, options.output, getExtension(), '', checkexists=True)))
                 try:
@@ -1286,8 +1321,10 @@ def makeBook(source, qtgui=None):
                     try:
                         print("Recreating directory tree in ouput directory...")
                         os.makedirs(os.path.split(filepath[-1])[0])
-                    except:
-                        raise UserWarning("Unable to recreate the directory tree in the ouput directory.")
+                    except Exception as err:
+                        # raise UserWarning("Unable to recreate the directory tree in the ouput directory.")
+                        logger.exception(err)
+                        sys.exit(logger.exception("CRITICAL: Unable to recreate the directory tree in\ the ouput directory."))
                 copyfile(tome + '_comic.zip', filepath[-1])
                 try:
                     os.remove(tome + '_comic.zip')
@@ -1300,23 +1337,23 @@ def makeBook(source, qtgui=None):
                 if GUI:
                     GUI.progressBarTick.emit('tick')
             if not GUI and options.format == 'MOBI':
-                print("Creating MOBI files...")
+                logger.info("Creating MOBI files...")
                 work = []
                 for i in filepath:
                     work.append([i])
                 output = makeMOBI(work, GUI)
                 for errors in output:
                     if errors[0] != 0:
-                        print('Error: KindleGen failed to create MOBI!')
-                        print(errors)
+                        logger.critical('CRITICAL: KindleGen failed to create MOBI!')
+                        logger.critical(errors)
                         return filepath
                 k = kindle.Kindle()
                 if k.path and k.coverSupport:
-                    print("Kindle detected. Uploading covers...")
+                    logger.info("Kindle detected. Uploading covers...")
                 for i in filepath:
                     output = makeMOBIFix(i, options.covers[filepath.index(i)][1])
                     if not output[0]:
-                        print('Error: Failed to tweak KindleGen output!')
+                        logger.critical('CRITICAL: Failed to tweak KindleGen output!')
                         return filepath
                     else:
                         os.remove(i.replace('.epub', '.mobi') + '_toclean')

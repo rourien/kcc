@@ -19,11 +19,32 @@
 #
 
 import os
+import logging
 from hashlib import md5
 from html.parser import HTMLParser
 from distutils.version import StrictVersion
 from re import split
 from traceback import format_tb
+from . import __version__
+
+
+def createLogger(logname, options):
+    loglevel = logging.INFO
+    logger = logging.getLogger(logname)
+    logger.setLevel(loglevel)
+    logconsole = logging.StreamHandler()
+    consoleformat = logging.Formatter("%(message)s")
+    logconsole.setFormatter(consoleformat)
+    logger.addHandler(logconsole)
+    if options.log:
+        logdir = os.path.abspath(os.path.join("kindlecomicconverter", os.pardir,"logs"))
+        if not os.path.exists(logdir):
+            os.mkdir(logdir)
+        logfile = logging.FileHandler(os.path.join(logdir, logname + ".log"))
+        fileformat = logging.Formatter("%(asctime)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+        logfile.setLevel(loglevel)
+        logfile.setFormatter(fileformat)
+        logger.addHandler(logfile)
 
 
 class HTMLStripper(HTMLParser):
@@ -131,3 +152,13 @@ def dependencyCheck(level):
     if len(missing) > 0:
         print('ERROR: ' + ', '.join(missing) + ' is not installed!')
         exit(1)
+
+
+def intro(logname):
+    logger = logging.getLogger(logname)
+    if logname == "kcc-c2p":
+        type = "comic2panel"
+    else:
+        type = "comic2ebook"
+    logger.info("_______________________________________________________________________________________")
+    logger.info(type + ' v' + __version__ + ' - Written by Ciro Mattia Gonano and Pawel Jastrzebski.')

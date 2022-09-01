@@ -149,6 +149,7 @@ CUSTOM PROFILE:
                         Replace screen height provided by device profile
 
 OTHER:
+  -l, --log             Write logs to /kcc/logs/kcc-c2e.log
   -h, --help            Show this help message and exit
 ```
 
@@ -165,6 +166,7 @@ MANDATORY:
   -m, --merge           Combine every directory into a single image before splitting
 
 OTHER:
+  -l, --log             Write logs to /kcc/logs/kcc-c2p.log
   -d, --debug           Create debug file for every split image
   -h, --help            Show this help message and exit
 ```
