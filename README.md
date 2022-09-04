@@ -79,7 +79,7 @@ Should be pretty self-explanatory. All options have detailed information in tool
 After completed conversion, you should find ready file alongside the original input file (same directory).
 
 Please check [our wiki](https://github.com/ciromattia/kcc/wiki/) for more details.
-Updated [profile](https://github.com/rourien/kcc/wiki/Profiles) list.
+Updated [profile](https://github.com/rourien/kcc/wiki/Profiles) list and instructions for adding a custom profile.
 
 CLI version of **KCC** is intended for power users. It allows using options that might not be compatible and decrease the quality of output.
 
