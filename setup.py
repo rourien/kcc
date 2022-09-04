@@ -83,6 +83,8 @@ setuptools.setup(
         'psutil>=5.0.0',
         'python-slugify>=1.2.1,<3.0.0',
         'raven>=6.0.0',
+        'mozjpeg-lossless-optimization',
+        'pandas',
     ],
     classifiers=[],
     zip_safe=False,

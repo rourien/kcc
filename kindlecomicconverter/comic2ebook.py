@@ -60,7 +60,11 @@ def main(argv=None):
     completedlist = []
     parser = makeParser()
     args = parser.parse_args(argv)
-    if not argv or args.input == []:
+    options = copy(args)
+    if args.help:
+        optionsHelp()
+        return 0
+    if not argv or args.input == [] or args.help == []:
         parser.print_help()
         return 0
     if sys.platform.startswith('win'):
@@ -70,10 +74,9 @@ def main(argv=None):
     if len(sources) == 0:
         print('No matching files found.')
         return 1
+    checkOptions()
     for source in sources:
         source = source.rstrip('\\').rstrip('/')
-        options = copy(args)
-        checkOptions()
         if os.path.isdir(source) and options.batchsplit == 0:
             sourcefiles = []
             ext = (".cbz",".zip",".cbr",".rar",".cb7",".7z",".pdf")
@@ -985,8 +988,9 @@ def makeParser():
     outputOptions = psr.add_argument_group("OUTPUT SETTINGS")
     customProfileOptions = psr.add_argument_group("CUSTOM PROFILE")
     otherOptions = psr.add_argument_group("OTHER")
-    profiles = ["K1", "K2", "K34", "K578", "KDX", "KPW", "KPW5", "KV", "KO", "KoMT", "KoG", "KoGHD",
-                "KoA", "KoAHD", "KoAH2O", "KoAO", "KoC", "KoL", "KoF"]
+    profiles = image.ProfileData().getColumn("Profile")
+    # profiles = ["K1", "K2", "K34", "K578", "KDX", "KPW", "KPW5", "KV", "KO", "KoMT", "KoG", "KoGHD",
+    #             "KoA", "KoAHD", "KoAH2O", "KoAO", "KoC", "KoL", "KoF"]
     formats = ["Auto", "MOBI", "EPUB", "CBZ", "KFX"]
 
     requiredOptions.add_argument("input", action="extend", nargs="*", default=None,
@@ -994,8 +998,8 @@ def makeParser():
                                  " spaces.")
 
     mainOptions.add_argument("-p", "--profile", metavar="PROFILE", action="store", dest="profile", default="KV", choices=profiles,
-                             help="Device profile (Available options: K1, K2, K34, K578, KDX, KPW, KPW5, KV, KO, KoMT, KoG,"
-                             " KoGHD, KoA, KoAHD, KoAH2O, KoAO, KoC, KoL, KoF) [Default=%(default)s]")
+                             help="Device profile (Common options: K578, KPW5, KV, KoGHD, KoA, KoAHD, KoAH2O, KoAO, KoC, KoL,"
+                             " KoF, KoN, KoE, KoS). For a list of all avaliable profiles, type -h profile [Default=%(default)s]")
     mainOptions.add_argument("-m", "--manga-style", action="store_true", dest="righttoleft", default=False,
                              help="Manga style (right-to-left reading and splitting)")
     mainOptions.add_argument("-q", "--hq", action="store_true", dest="hq", default=False,
@@ -1067,10 +1071,17 @@ def makeParser():
     customProfileOptions.add_argument("--ch", "--customheight", type=int, dest="customheight", default="0",
                                       help="Replace screen height provided by device profile")
 
-    otherOptions.add_argument("-h", "--help", action="help",
+    otherOptions.add_argument("-h", "--help", action="extend", nargs="*", default=None,
                               help="Show this help message and exit")
 
     return psr
+
+
+def optionsHelp():
+    if options.help[0] == "profile":
+        print(image.ProfileData().getAllProfiles())
+    else:
+        print("ERROR: Help option " + str(options.help) + " not avaliable.")
 
 
 def checkOptions():
@@ -1122,17 +1133,19 @@ def checkOptions():
         options.panelview = False
     # Override profile data
     if options.customwidth != 0 or options.customheight != 0:
-        X = image.ProfileData.Profiles[options.profile][1][0]
-        Y = image.ProfileData.Profiles[options.profile][1][1]
+        X = image.ProfileData().profiles(options.profile)[1][0]
+        Y = image.ProfileData().profiles(options.profile)[1][1]
         if options.customwidth != 0:
             X = options.customwidth
         if options.customheight != 0:
             Y = options.customheight
         newProfile = ("Custom", (int(X), int(Y)), image.ProfileData.Palette16,
-                      image.ProfileData.Profiles[options.profile][3])
-        image.ProfileData.Profiles["Custom"] = newProfile
+                      image.ProfileData().profiles(options.profile)[3])
+        # image.ProfileData.Profiles["Custom"] = newProfile
         options.profile = "Custom"
-    options.profileData = image.ProfileData.Profiles[options.profile]
+        options.profileData = newProfile
+    else:
+        options.profileData = image.ProfileData().profiles(options.profile)
     # Only copy ComicInfo.xml to .cbz files
     if not options.format == "CBZ":
         options.copycomicinfo == False
@@ -1221,7 +1234,7 @@ def makeBook(source, qtgui=None):
         getComicInfo(os.path.join(path, "OEBPS", "Images"), source)
         if not detectCorruption(os.path.join(path, "OEBPS", "Images"), source):
             if options.webtoon:
-                y = image.ProfileData.Profiles[options.profile][1][1]
+                y = image.ProfileData().profiles(options.profile)[1][1]
                 comic2panel.main(['-y ' + str(y), '-i', '-m', path], qtgui)
             if options.noprocessing:
                 print("Do not process image. Ignore any profile or processing option.")
