@@ -48,15 +48,17 @@ pip install --user KindleComicConverter
 Following software is required to run Linux version of **KCC** and/or bare sources:
 - Python 3.3+
 - [PyQt5](https://pypi.python.org/pypi/PyQt5) 5.6.0+ (only needed for GUI)
-- [Pillow](https://pypi.python.org/pypi/Pillow/) 4.0.0+ (5.2.0+ needed for WebP support)
+- [Pillow](https://pypi.python.org/pypi/Pillow) 4.0.0+ (5.2.0+ needed for WebP support)
 - [psutil](https://pypi.python.org/pypi/psutil) 5.0.0+
 - [python-slugify](https://pypi.python.org/pypi/python-slugify) 1.2.1+, <3.0.0
 - [raven](https://pypi.python.org/pypi/raven) 6.0.0+ (only needed for GUI)
+- [mozjpeg](https://pypi.org/project/mozjpeg-lossless-optimization) (only needed for mozjpeg option)
+- [pandas](https://pypi.org/project/pandas)
 
 On Debian based distributions these two commands should install all needed dependencies:
 ```
 sudo apt-get install python3 python3-dev python3-pip libpng-dev libjpeg-dev p7zip-full
-pip3 install --user --upgrade pillow python-slugify psutil pyqt5 raven
+pip3 install --user --upgrade pillow python-slugify psutil pyqt5 raven mozjpeg-lossless-optimization pandas
 ```
 
 ### Optional dependencies
@@ -91,8 +93,8 @@ MANDATORY:
 
 MAIN:
   -p PROFILE, --profile PROFILE
-                        Device profile (Available options: K1, K2, K34, K578, KDX, KPW, KPW5, KV, KO,
-                        KoMT, KoG, KoGHD, KoA, KoAHD, KoAH2O, KoAO, KoC, KoL, KoF) [Default=KV]
+                        Device profile (Common options: K578, KPW5, KV, KoGHD, KoA, KoAHD, KoAH2O, KoAO, KoC, KoL,
+                        KoF, KoN, KoE, KoS). For a list of all avaliable profiles, type -h profile [Default=KV]
   -m, --manga-style     Manga style (right-to-left reading and splitting)
   -q, --hq              Try to increase the quality of magnification
   -2, --two-panel       Display two not four panels in Panel View mode

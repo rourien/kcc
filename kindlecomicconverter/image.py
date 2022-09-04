@@ -20,6 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import io
 import os
+import pandas as pd
 import mozjpeg_lossless_optimization
 from PIL import Image, ImageOps, ImageStat, ImageChops, ImageFilter
 from .shared import md5Checksum
@@ -27,7 +28,14 @@ from .shared import md5Checksum
 
 class ProfileData:
     def __init__(self):
-        pass
+        self.ignore_index = "ignore_index"
+        self.df = pd.read_csv("profiles.csv")
+        if os.path.exists("userprofiles.csv"):
+            self.userdf = pd.read_csv("userprofiles.csv")
+            self.df = pd.concat([self.df, self.userdf],ignore_index=True)
+        self.df.fillna("", inplace=True)
+        self.df["PPI"] = self.df["PPI"].astype(str).apply(lambda x: x.replace(".0",""))
+        self.df["Year"] = self.df["Year"].astype(str).apply(lambda x: x.replace(".0",""))
 
     Palette4 = [
         0x00, 0x00, 0x00,
@@ -76,29 +84,31 @@ class ProfileData:
     PalleteNull = [
     ]
 
-    Profiles = {
-        'K1': ("Kindle 1", (600, 670), Palette4, 1.8),
-        'K2': ("Kindle 2", (600, 670), Palette15, 1.8),
-        'K34': ("Kindle Keyboard/Touch", (600, 800), Palette16, 1.8),
-        'K578': ("Kindle", (600, 800), Palette16, 1.8),
-        'KDX': ("Kindle DX/DXG", (824, 1000), Palette16, 1.8),
-        'KPW': ("Kindle Paperwhite 1/2", (758, 1024), Palette16, 1.8),
-        'KV': ("Kindle Paperwhite 3/4/Voyage/Oasis", (1072, 1448), Palette16, 1.8),
-        'KPW5': ("Kindle Paperwhite 5/Signature Edition", (1236, 1648), Palette16, 1.8),
-        'KO': ("Kindle Oasis 2/3", (1264, 1680), Palette16, 1.8),
-        'KoMT': ("Kobo Mini/Touch", (600, 800), Palette16, 1.8),
-        'KoG': ("Kobo Glo", (768, 1024), Palette16, 1.8),
-        'KoGHD': ("Kobo Glo HD", (1072, 1448), Palette16, 1.8),
-        'KoA': ("Kobo Aura", (758, 1024), Palette16, 1.8),
-        'KoAHD': ("Kobo Aura HD", (1080, 1440), Palette16, 1.8),
-        'KoAH2O': ("Kobo Aura H2O", (1080, 1430), Palette16, 1.8),
-        'KoAO': ("Kobo Aura ONE", (1404, 1872), Palette16, 1.8),
-        'KoC': ("Kobo Clara HD", (1072, 1448), Palette16, 1.8),
-        'KoL': ("Kobo Libra H2O", (1264, 1680), Palette16, 1.8),
-        'KoF': ("Kobo Forma", (1440, 1920), Palette16, 1.8),
-        'OTHER': ("Other", (0, 0), Palette16, 1.8),
-    }
+    def getColumn(self, column, index=False):
+        if not index:
+            return list(self.df.loc[:, column])
+        else:
+            return list(self.df.iloc[:, column])
 
+    def getAllProfiles(self):
+        pd.set_option('display.max_rows', None)
+        return self.df
+
+    def profiles(self, profile):
+        self.df.set_index("Profile", inplace=True)
+        try:
+            model = self.df.loc[profile, "Model"][-1]
+            width = self.df.loc[profile, "Width"][-1]
+            height = self.df.loc[profile, "Height"][-1]
+            palette = "Palette" + str(self.df.loc[profile, "Palette"][-1])
+            gamma = self.df.loc[profile, "Gamma"][-1]
+        except IndexError:
+            model = self.df.loc[profile, "Model"]
+            width = self.df.loc[profile, "Width"]
+            height = self.df.loc[profile, "Height"]
+            palette = "Palette" + str(self.df.loc[profile, "Palette"])
+            gamma = self.df.loc[profile, "Gamma"]
+        return (model, (width, height), palette, gamma)
 
 class ComicPageParser:
     def __init__(self, source, options):
