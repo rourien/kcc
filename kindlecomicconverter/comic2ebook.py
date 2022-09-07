@@ -58,13 +58,12 @@ def main(argv=None):
     copyprocessedlist = []
     multiprocessedlist = []
     completedlist = []
+    sourcefiles = []
+    countsourcefiles = 1
+    ext = (".cbz",".zip",".cbr",".rar",".cb7",".7z",".pdf")
     parser = makeParser()
     args = parser.parse_args(argv)
-    options = copy(args)
-    if args.help:
-        optionsHelp()
-        return 0
-    if not argv or args.input == [] or args.help == []:
+    if not argv or args.input == []:
         parser.print_help()
         return 0
     if sys.platform.startswith('win'):
@@ -74,22 +73,26 @@ def main(argv=None):
     if len(sources) == 0:
         print('No matching files found.')
         return 1
-    checkOptions()
     for source in sources:
         source = source.rstrip('\\').rstrip('/')
-        if os.path.isdir(source) and options.batchsplit == 0:
-            sourcefiles = []
-            ext = (".cbz",".zip",".cbr",".rar",".cb7",".7z",".pdf")
-            for dirpath, dirnames, filenames in os.walk(source):
-                for filename in filenames:
-                    if str(filename).endswith(ext):
-                        sourcefiles.append(os.path.join(dirpath,filename))
-            for sourcefile in sourcefiles:
-                print('\nWorking on ' + os.path.normpath(sourcefile))
-                makeBook(sourcefile)
+        options = copy(args)
+        checkOptions()
+        if options.batchsplit == 0:
+            if os.path.isdir(source):
+                for dirpath, _, filenames in os.walk(source):
+                    for filename in filenames:
+                        if str(filename).endswith(ext):
+                            sourcefiles.append(os.path.join(dirpath,filename))
+            elif str(source).endswith(ext):
+                sourcefiles.append(source)
         else:
-            print('\nWorking on ' + os.path.normpath(source))
+            print("\nWorking on " + os.path.normpath(source))
             makeBook(source)
+    for sourcefile in sourcefiles:
+        print("\nWorking on " + "(" + str(countsourcefiles) + "/" + str(len(sourcefiles)) + ") - " +
+                os.path.normpath(sourcefile))
+        makeBook(sourcefile)
+        countsourcefiles += 1
     if alreadyexistslist:
         print("\nThe following file(s) already exist in the output directory and were skipped:")
         for alreadyexists in alreadyexistslist:
@@ -988,9 +991,7 @@ def makeParser():
     outputOptions = psr.add_argument_group("OUTPUT SETTINGS")
     customProfileOptions = psr.add_argument_group("CUSTOM PROFILE")
     otherOptions = psr.add_argument_group("OTHER")
-    profiles = image.ProfileData().getColumn("Profile")
-    # profiles = ["K1", "K2", "K34", "K578", "KDX", "KPW", "KPW5", "KV", "KO", "KoMT", "KoG", "KoGHD",
-    #             "KoA", "KoAHD", "KoAH2O", "KoAO", "KoC", "KoL", "KoF"]
+    profiles = image.ProfileData().getRows("Profile")
     formats = ["Auto", "MOBI", "EPUB", "CBZ", "KFX"]
 
     requiredOptions.add_argument("input", action="extend", nargs="*", default=None,
@@ -1086,18 +1087,29 @@ def optionsHelp():
 
 def checkOptions():
     global options
+    profilematch = image.ProfileData().checkProfileMatch
     options.panelview = True
     options.iskindle = False
     options.bordersColor = None
     options.kfx = False
     if options.format == 'Auto':
-        if options.profile in ['K1', 'K2', 'K34', 'K578', 'KPW', 'KPW5', 'KV', 'KO']:
+        if not options.profile in ['KDX'] and \
+                profilematch(["Profile", options.profile], ["Manufacturer", "Kindle"]):
             options.format = 'MOBI'
-        elif options.profile in ['OTHER', 'KoMT', 'KoG', 'KoGHD', 'KoA', 'KoAHD', 'KoAH2O', 'KoAO']:
+        elif options.profile in ['OTHER'] or \
+                profilematch(["Profile", options.profile], ["Manufacturer", "Kobo"]) or \
+                profilematch(["Profile", options.profile], ["Manufacturer", "Nook"]) or \
+                profilematch(["Profile", options.profile], ["Manufacturer", "Pocketbook"]) or \
+                profilematch(["Profile", options.profile], ["Manufacturer", "Tolino"]):
             options.format = 'EPUB'
-        elif options.profile in ['KDX']:
+        elif options.profile in ['KDX'] or \
+                profilematch(["Profile", options.profile], ["Manufacturer", "Amazon"]) or \
+                profilematch(["Profile", options.profile], ["Manufacturer", "Apple"]):
             options.format = 'CBZ'
-    if options.profile in ['K1', 'K2', 'K34', 'K578', 'KPW', 'KPW5', 'KV', 'KO']:
+        else:
+            raise UserWarning ("ERROR: Profile " + options.profile + " does not support Auto format. Specify a format"
+                               " with the format option.")
+    if profilematch(["Profile", options.profile], ["Manufacturer","Kindle"]):
         options.iskindle = True
     if options.white_borders:
         options.bordersColor = 'white'
@@ -1147,8 +1159,9 @@ def checkOptions():
     else:
         options.profileData = image.ProfileData().profiles(options.profile)
     # Only copy ComicInfo.xml to .cbz files
-    if not options.format == "CBZ":
-        options.copycomicinfo == False
+    if not options.format == "CBZ" and options.copycomicinfo:
+        raise UserWarning("Can only copy ComicInfo.xml to CBZ format. Either change format or don't use the"
+                          " copycomicinfo option.")
 
 
 def checkTools(source):

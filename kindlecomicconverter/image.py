@@ -84,11 +84,18 @@ class ProfileData:
     PalleteNull = [
     ]
 
-    def getColumn(self, column, index=False):
+    def getRows(self, column, index=False):
         if not index:
             return list(self.df.loc[:, column])
         else:
             return list(self.df.iloc[:, column])
+
+    def checkProfileMatch(self, column1:list, column2:list):
+        match = self.df.loc[(self.df[column1[0]] == column1[1]) & (self.df[column2[0]] == column2[1])]
+        if len(match.index) != 0:
+            return True
+        else:
+            return False
 
     def getAllProfiles(self):
         pd.set_option('display.max_rows', None)
