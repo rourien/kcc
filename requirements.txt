@@ -6,3 +6,4 @@ raven>=6.0.0
 # PyQt5-tools
 mozjpeg-lossless-optimization
 pandas
+rich

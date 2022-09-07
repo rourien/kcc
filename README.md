@@ -52,13 +52,13 @@ Following software is required to run Linux version of **KCC** and/or bare sourc
 - [psutil](https://pypi.python.org/pypi/psutil) 5.0.0+
 - [python-slugify](https://pypi.python.org/pypi/python-slugify) 1.2.1+, <3.0.0
 - [raven](https://pypi.python.org/pypi/raven) 6.0.0+ (only needed for GUI)
-- [mozjpeg](https://pypi.org/project/mozjpeg-lossless-optimization) (only needed for mozjpeg option)
+- [mozjpeg](https://pypi.org/project/mozjpeg-lossless-optimization)
 - [pandas](https://pypi.org/project/pandas)
-
+- [rich](https://pypi.org/project/rich) (Only needed for fancy text and progress bars. Else use noformat option)
 On Debian based distributions these two commands should install all needed dependencies:
 ```
 sudo apt-get install python3 python3-dev python3-pip libpng-dev libjpeg-dev p7zip-full
-pip3 install --user --upgrade pillow python-slugify psutil pyqt5 raven mozjpeg-lossless-optimization pandas
+pip3 install --user --upgrade pillow python-slugify psutil pyqt5 raven mozjpeg-lossless-optimization pandas rich
 ```
 
 ### Optional dependencies
@@ -181,6 +181,7 @@ The app relies and includes the following scripts:
 
  - `DualMetaFix` script by **K. Hendricks**. Released with GPL-3 License.
  - `image.py` class from **Alex Yatskov**'s [Mangle](https://github.com/FooSoft/mangle/) with subsequent [proDOOMman](https://github.com/proDOOMman/Mangle)'s and [Birua](https://github.com/Birua/Mangle)'s patches.
+ - `df_to_table` function from **Avi Perl**'s [Rich Tools](https://github.com/avi-perl/rich_tools)
  - Icon is by **Nikolay Verin** ([http://ncrow.deviantart.com/](http://ncrow.deviantart.com/)) and released under [CC BY-NC-SA 3.0](http://creativecommons.org/licenses/by-nc-sa/3.0/) License.
 
 ## SAMPLE FILES CREATED BY KCC

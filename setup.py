@@ -85,6 +85,7 @@ setuptools.setup(
         'raven>=6.0.0',
         'mozjpeg-lossless-optimization',
         'pandas',
+        'rich',
     ],
     classifiers=[],
     zip_safe=False,

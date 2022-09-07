@@ -18,6 +18,28 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+# Copyright 2021 Avrohom Perl
+
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files
+# (the "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Software, and to permit
+# persons to whom the Software is furnished to do so, subject to the
+# following conditions:
+
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+# OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 import io
 import os
 import pandas as pd
@@ -25,14 +47,13 @@ import mozjpeg_lossless_optimization
 from PIL import Image, ImageOps, ImageStat, ImageChops, ImageFilter
 from .shared import md5Checksum
 
-
 class ProfileData:
     def __init__(self):
-        self.ignore_index = "ignore_index"
         self.df = pd.read_csv("profiles.csv")
         if os.path.exists("userprofiles.csv"):
+            self.ignore_index = "ignore_index"
             self.userdf = pd.read_csv("userprofiles.csv")
-            self.df = pd.concat([self.df, self.userdf],ignore_index=True)
+            self.df = pd.concat([self.df, self.userdf], ignore_index=True)
         self.df.fillna("", inplace=True)
         self.df["PPI"] = self.df["PPI"].astype(str).apply(lambda x: x.replace(".0",""))
         self.df["Year"] = self.df["Year"].astype(str).apply(lambda x: x.replace(".0",""))
@@ -90,9 +111,31 @@ class ProfileData:
         else:
             return list(self.df.iloc[:, column])
 
-    def getAllProfiles(self):
+    def getAllProfiles(self, noformatting):
         pd.set_option('display.max_rows', None)
-        return self.df
+        if not noformatting:
+            try:
+                # Copied from Rich Tools library
+                from rich.table import Table
+                pandas_dataframe = self.df
+                rich_table = Table()
+                show_index = True
+                index_name = None
+                if show_index:
+                    index_name = str(index_name) if index_name else ""
+                    rich_table.add_column(index_name)
+                for column in pandas_dataframe.columns:
+                    rich_table.add_column(str(column))
+                for index, value_list in enumerate(pandas_dataframe.values.tolist()):
+                    row = [str(index)] if show_index else []
+                    row += [str(x) for x in value_list]
+                    rich_table.add_row(*row)
+                table = rich_table
+            except:
+                table = self.df
+        else:
+            table = self.df
+        return table
 
     def profiles(self, profile):
         self.df.set_index("Profile", inplace=True)

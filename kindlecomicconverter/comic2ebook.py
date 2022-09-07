@@ -52,44 +52,63 @@ from . import __version__
 
 
 def main(argv=None):
-    global options, alreadyexistslist, alreadyprocessedlist, copyprocessedlist, multiprocessedlist, completedlist
+    global options, progress, sourcetask, alreadyexistslist, alreadyprocessedlist, copyprocessedlist, \
+        multiprocessedlist, completedlist
     alreadyexistslist = []
     alreadyprocessedlist = []
     copyprocessedlist = []
     multiprocessedlist = []
     completedlist = []
+    sourcefiles = []
+    countsourcefiles = 1
+    ext = (".cbz",".zip",".cbr",".rar",".cb7",".7z",".pdf")
     parser = makeParser()
     args = parser.parse_args(argv)
     options = copy(args)
-    if args.help:
+    if options.help:
         optionsHelp()
         return 0
-    if not argv or args.input == [] or args.help == []:
+    if not argv or options.input == [] or options.help == []:
         parser.print_help()
         return 0
     if sys.platform.startswith('win'):
-        sources = set([source for arg in args.input for source in glob(escape(arg))])
+        sources = set([source for option in options.input for source in glob(escape(option))])
     else:
-        sources = set(args.input)
+        sources = set(options.input)
     if len(sources) == 0:
         print('No matching files found.')
         return 1
     checkOptions()
     for source in sources:
         source = source.rstrip('\\').rstrip('/')
-        if os.path.isdir(source) and options.batchsplit == 0:
-            sourcefiles = []
-            ext = (".cbz",".zip",".cbr",".rar",".cb7",".7z",".pdf")
-            for dirpath, dirnames, filenames in os.walk(source):
-                for filename in filenames:
-                    if str(filename).endswith(ext):
-                        sourcefiles.append(os.path.join(dirpath,filename))
-            for sourcefile in sourcefiles:
-                print('\nWorking on ' + os.path.normpath(sourcefile))
-                makeBook(sourcefile)
+        if options.batchsplit == 0:
+            if os.path.isdir(source):
+                for dirpath, _, filenames in os.walk(source):
+                    for filename in filenames:
+                        if str(filename).endswith(ext):
+                            sourcefiles.append(os.path.join(dirpath,filename))
+            elif str(source).endswith(ext):
+                sourcefiles.append(source)
         else:
-            print('\nWorking on ' + os.path.normpath(source))
+            print("\nWorking on " + os.path.normpath(source))
             makeBook(source)
+    if not options.noformatting:
+        from rich.progress import BarColumn, MofNCompleteColumn, Progress, SpinnerColumn, TimeElapsedColumn
+        with Progress("{task.description}", SpinnerColumn("simpleDots"), TimeElapsedColumn(), BarColumn(),
+                        MofNCompleteColumn(), transient=True) as progress:
+            sourcetask = progress.add_task("Working", total=int(len(sourcefiles)))
+            for sourcefile in sourcefiles:
+                print("\nWorking on " + "(" + str(countsourcefiles) + "/" + str(len(sourcefiles)) + ") - " +
+                        os.path.normpath(source))
+                makeBook(sourcefile)
+                progress.update(sourcetask, advance=1)
+                countsourcefiles += 1
+    else:
+        for sourcefile in sourcefiles:
+            print("\nWorking on " + "(" + str(countsourcefiles) + "/" + str(len(sourcefiles)) + ") - " +
+                    os.path.normpath(source))
+            makeBook(sourcefile)
+            countsourcefiles += 1
     if alreadyexistslist:
         print("\nThe following file(s) already exist in the output directory and were skipped:")
         for alreadyexists in alreadyexistslist:
@@ -989,8 +1008,6 @@ def makeParser():
     customProfileOptions = psr.add_argument_group("CUSTOM PROFILE")
     otherOptions = psr.add_argument_group("OTHER")
     profiles = image.ProfileData().getColumn("Profile")
-    # profiles = ["K1", "K2", "K34", "K578", "KDX", "KPW", "KPW5", "KV", "KO", "KoMT", "KoG", "KoGHD",
-    #             "KoA", "KoAHD", "KoAH2O", "KoAO", "KoC", "KoL", "KoF"]
     formats = ["Auto", "MOBI", "EPUB", "CBZ", "KFX"]
 
     requiredOptions.add_argument("input", action="extend", nargs="*", default=None,
@@ -1070,7 +1087,8 @@ def makeParser():
                                       help="Replace screen width provided by device profile")
     customProfileOptions.add_argument("--ch", "--customheight", type=int, dest="customheight", default="0",
                                       help="Replace screen height provided by device profile")
-
+    otherOptions.add_argument("--nf", "--noformatting", action="store_true", dest="noformatting", default=False,
+                              help="Disable custom formatting in the console")
     otherOptions.add_argument("-h", "--help", action="extend", nargs="*", default=None,
                               help="Show this help message and exit")
 
@@ -1079,7 +1097,7 @@ def makeParser():
 
 def optionsHelp():
     if options.help[0] == "profile":
-        print(image.ProfileData().getAllProfiles())
+        print(image.ProfileData().getAllProfiles(options.noformatting))
     else:
         print("ERROR: Help option " + str(options.help) + " not avaliable.")
 
