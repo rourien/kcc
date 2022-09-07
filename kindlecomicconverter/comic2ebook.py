@@ -63,13 +63,17 @@ def main(argv=None):
     ext = (".cbz",".zip",".cbr",".rar",".cb7",".7z",".pdf")
     parser = makeParser()
     args = parser.parse_args(argv)
-    if not argv or args.input == []:
+    options = copy(args)
+    if options.help:
+        optionsHelp()
+        return 0
+    if not argv or options.input == []:
         parser.print_help()
         return 0
     if sys.platform.startswith('win'):
-        sources = set([source for arg in args.input for source in glob(escape(arg))])
+        sources = set([source for option in options.input for source in glob(escape(option))])
     else:
-        sources = set(args.input)
+        sources = set(options.input)
     if len(sources) == 0:
         print('No matching files found.')
         return 1
