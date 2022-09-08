@@ -24,6 +24,12 @@ from html.parser import HTMLParser
 from distutils.version import StrictVersion
 from re import split
 from traceback import format_tb
+from stat import S_IWRITE, S_IREAD, S_IEXEC
+from shutil import rmtree, copytree
+from psutil import disk_usage
+from tempfile import mkdtemp, gettempdir
+from . import comicarchive
+from . import pdfjpgextract
 
 
 class HTMLStripper(HTMLParser):
@@ -50,6 +56,61 @@ def getImageFileName(imgfile):
     if (name.startswith('.') and len(name) == 1) or ext not in ['.png', '.jpg', '.jpeg', '.gif', '.webp']:
         return None
     return [name, ext]
+
+
+def getDirectorySize(start_path='.'):
+    total_size = 0
+    for dirpath, _, filenames in os.walk(start_path):
+        for f in filenames:
+            fp = os.path.join(dirpath, f)
+            total_size += os.path.getsize(fp)
+    return total_size
+
+
+def getWorkFolder(afile, name, ebook=True):
+    if os.path.isdir(afile):
+        if disk_usage(gettempdir())[2] < getDirectorySize(afile) * 2.5:
+            raise UserWarning("Not enough disk space to perform conversion.")
+        workdir = mkdtemp('', name)
+        try:
+            os.rmdir(workdir)
+            if ebook:
+                fullPath = os.path.join(workdir, 'OEBPS', 'Images')
+            else:
+                fullPath = workdir
+            copytree(afile, fullPath)
+            sanitizePermissions(fullPath)
+            return os.path.abspath(workdir)
+        except Exception:
+            rmtree(workdir, True)
+            raise UserWarning("Failed to prepare a workspace.")
+    elif os.path.isfile(afile):
+        if disk_usage(gettempdir())[2] < os.path.getsize(afile) * 2.5:
+            raise UserWarning("Not enough disk space to perform conversion.")
+        if str(afile).lower().endswith('.pdf'):
+            pdf = pdfjpgextract.PdfJpgExtract(afile)
+            path, njpg = pdf.extract()
+            if njpg == 0:
+                rmtree(path, True)
+                raise UserWarning("Failed to extract images from PDF file.")
+        else:
+            workdir = mkdtemp('', name)
+            try:
+                cbx = comicarchive.ComicArchive(afile)
+                path = cbx.extract(workdir)
+            except OSError as e:
+                rmtree(workdir, True)
+                raise UserWarning(e.strerror)
+        sanitizePermissions(path)
+        newpath = mkdtemp('', name)
+        if ebook:
+            copytree(path, os.path.join(newpath, 'OEBPS', 'Images'))
+        else:
+            copytree(path, workdir)
+        rmtree(path, True)
+        return os.path.abspath(newpath)
+    else:
+        raise UserWarning("Failed to open source file/directory.")
 
 
 def walkSort(dirnames, filenames):
@@ -93,6 +154,14 @@ def sanitizeTrace(traceback):
         .replace('c:\\projects\\kcc\\', '')\
         .replace('C:\\python37-x64\\', '')\
         .replace('c:\\python37-x64\\', '')
+
+
+def sanitizePermissions(filetree):
+    for root, dirs, files in os.walk(filetree, False):
+        for name in files:
+            os.chmod(os.path.join(root, name), S_IWRITE | S_IREAD)
+        for name in dirs:
+            os.chmod(os.path.join(root, name), S_IWRITE | S_IREAD | S_IEXEC)
 
 
 # noinspection PyUnresolvedReferences

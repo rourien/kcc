@@ -1,6 +1,6 @@
 Profile,Manufacturer,Model,Width,Height,Palette,Gamma,PPI,Screen Size (in),Year
-FR,Amazon,Fire (all),600,1024,16,1,171,7,
-FHD,Amazon,Fire HD (all),800,1280,16,1,252,6,
+FR,Amazon,Fire (all),600,1024,16,1,171,7.0,
+FHD,Amazon,Fire HD (all),800,1280,16,1,252,6.0,
 FHDX,Amazon,Fire HDX,1600,2560,16,1,339,8.9,
 IPD5,Apple,iPad 5th gen,1536,2048,16,1,264,9.7,2017
 IPD6,Apple,iPad 6th gen,1536,2048,16,1,264,9.7,2018
@@ -19,72 +19,72 @@ IPDP1S,Apple,iPad Pro 9.7in 1st gen,1536,2048,16,1,264,9.7,2016
 IPDP1L,Apple,iPad Pro 12.9in 1st gen,2048,2732,16,1,264,12.9,2015
 IPDP2S,Apple,iPad Pro 10.5in 2nd gen,1668,2224,16,1,264,10.5,2017
 IPDP2L,Apple,iPad Pro 12.9in 2nd gen,2048,2732,16,1,264,12.9,2017
-IPDP3S,Apple,iPad Pro 11in 3rd gen,1668,2388,16,1,264,11,2018
+IPDP3S,Apple,iPad Pro 11in 3rd gen,1668,2388,16,1,264,11.0,2018
 IPDP3L,Apple,iPad Pro 12.9in 3rd gen,2048,2732,16,1,264,12.9,2018
-IPDP4S,Apple,iPad Pro 11in 4th gen,1668,2388,16,1,264,11,2020
+IPDP4S,Apple,iPad Pro 11in 4th gen,1668,2388,16,1,264,11.0,2020
 IPDP4L,Apple,iPad Pro 12.9in 4th gen,2048,2732,16,1,264,12.9,2020
-IPDP5S,Apple,iPad Pro 11in 5th gen,1668,2388,16,1,264,11,2021
+IPDP5S,Apple,iPad Pro 11in 5th gen,1668,2388,16,1,264,11.0,2021
 IPDP5L,Apple,iPad Pro 12.9in 5th gen,2048,2732,16,1,264,12.9,2021
-K578,Kindle,Kindle (all),600,800,16,1.8,167,6,
-K578,Kindle,Kindle 8th gen,600,800,16,1.8,167,6,2016
-K578,Kindle,Kindle 10th gen,600,800,16,1.8,167,6,2019
-KV,Kindle,Oasis 1st gen,1080,1440,16,1.8,300,6,2016
-KV,Kindle,Paperwhite 3rd gen,1080,1430,16,1.8,300,6,2015
-KV,Kindle,Paperwhite 4th gen,1080,1430,16,1.8,300,6,2018
+K578,Kindle,Kindle (all),600,800,16,1.8,167,6.0,
+K578,Kindle,Kindle 8th gen,600,800,16,1.8,167,6.0,2016
+K578,Kindle,Kindle 10th gen,600,800,16,1.8,167,6.0,2019
+KV,Kindle,Oasis 1st gen,1080,1440,16,1.8,300,6.0,2016
+KV,Kindle,Paperwhite 3rd gen,1080,1430,16,1.8,300,6.0,2015
+KV,Kindle,Paperwhite 4th gen,1080,1430,16,1.8,300,6.0,2018
 KPW5,Kindle,Paperwhite 5,1236,1648,16,1.8,300,6.8,2021
-KV,Kindle,Voyage,1080,1430,16,1.8,300,6,2014
+KV,Kindle,Voyage,1080,1430,16,1.8,300,6.0,2014
 KoAH2O,Kobo,Aura H2O,1080,1430,16,1.8,265,6.8,2014
-KoA,Kobo,Aura Edition 2,768,1024,16,1.8,212,6,2016
+KoA,Kobo,Aura Edition 2,768,1024,16,1.8,212,6.0,2016
 KoAO,Kobo,Aura One,1404,1872,16,1.8,300,7.8,2016
 KoAHD,Kobo,Aura H2O Edition 2,1080,1440,16,1.8,265,6.8,2017
-KoC,Kobo,Clara HD,1072,1448,16,1.8,300,6,2018
+KoC,Kobo,Clara HD,1072,1448,16,1.8,300,6.0,2018
 KoE,Kobo,Elipsa,1404,1872,16,1.8,227,10.3,2021
-KoF,Kobo,Forma,1440,1920,16,1.8,300,8,2018
-KoGHD,Kobo,Glo HD,1072,1448,16,1.8,300,6,2015
-KoL,Kobo,Libra H2O,1264,1680,16,1.8,300,7,2019
-KoL,Kobo,Libra 2,1264,1680,16,1.8,300,7,2021
-KoN,Kobo,Nia,758,1024,16,1.8,212,6,2020
-KoS,Kobo,Sage,1440,1920,16,1.8,300,8,2021
-KoMT,Kobo,Touch 2.0,600,800,16,1.8,167,6,2015
+KoF,Kobo,Forma,1440,1920,16,1.8,300,8.0,2018
+KoGHD,Kobo,Glo HD,1072,1448,16,1.8,300,6.0,2015
+KoL,Kobo,Libra H2O,1264,1680,16,1.8,300,7.0,2019
+KoL,Kobo,Libra 2,1264,1680,16,1.8,300,7.0,2021
+KoN,Kobo,Nia,758,1024,16,1.8,212,6.0,2020
+KoS,Kobo,Sage,1440,1920,16,1.8,300,8.0,2021
+KoMT,Kobo,Touch 2.0,600,800,16,1.8,167,6.0,2015
 NLHD,Nook,Nook 10in HD,800,1280,16,1,149,10.1,2021
-NG3,Nook,Glowlight 3,1072,1448,16,1.8,300,6,2017
+NG3,Nook,Glowlight 3,1072,1448,16,1.8,300,6.0,2017
 NGP,Nook,Glowlight Plus,1404,1872,16,1.8,300,7.8,2019
-NG4,Nook,Glowlight 4,1072,1448,16,1.8,300,6,2021
-SGT4N,Nook,Samsung Galaxy Tab 4 Nook,800,1280,16,1,149,7,2014
+NG4,Nook,Glowlight 4,1072,1448,16,1.8,300,6.0,2021
+SGT4N,Nook,Samsung Galaxy Tab 4 Nook,800,1280,16,1,149,7.0,2014
 SGT4N,Nook,Samsung Galaxy Tab 4 Nook 10.1in,800,1280,16,1,149,10.1,2014
 SGTS2N,Nook,Samsung Galaxy Tab S2 Nook,1536,2048,16,1,320,9.6,2015
-SGT4N,Nook,Samsung Galaxy Tab E Nook,800,1280,16,1,157,8,2015
-NT,Nook,Tablet (all),600,1024,16,1,171,7,
-NTL,Nook,Tablet 10.1in,1200,1920,16,1,,10,
-PA1,Pocketbook,Aqua,600,800,16,1.8,,6,2014
-PA2,Pocketbook,Aqua 2,758,1024,16,1.8,,6,2017
-PB2,Pocketbook,Basic 2,600,800,16,1.8,,6,2015
-PB3,Pocketbook,Basic 3,600,800,16,1.8,,6,2017
-PB4,Pocketbook,Basic 4,758,1024,16,1.8,212,6,2020
-PBL1,Pocketbook,Basic Lux,600,800,16,1.8,,6,2017
-PBL2,Pocketbook,Basic Lux 2,758,1024,16,1.8,,6,2018
-PBT,Pocketbook,Basic Touch 2,600,800,16,1.8,,6,2016
-PE,Pocketbook,Era,1264,1680,16,1.8,300,7,2022
-PI1,Pocketbook,InkPad,1200,1600,16,1.8,250,8,2014
-PI2,Pocketbook,InkPad 2,1200,1600,16,1.8,,8,2016
+SGT4N,Nook,Samsung Galaxy Tab E Nook,800,1280,16,1,157,8.0,2015
+NT,Nook,Tablet (all),600,1024,16,1,171,7.0,
+NTL,Nook,Tablet 10.1in,1200,1920,16,1,,10.0,
+PA1,Pocketbook,Aqua,600,800,16,1.8,,6.0,2014
+PA2,Pocketbook,Aqua 2,758,1024,16,1.8,,6.0,2017
+PB2,Pocketbook,Basic 2,600,800,16,1.8,,6.0,2015
+PB3,Pocketbook,Basic 3,600,800,16,1.8,,6.0,2017
+PB4,Pocketbook,Basic 4,758,1024,16,1.8,212,6.0,2020
+PBL1,Pocketbook,Basic Lux,600,800,16,1.8,,6.0,2017
+PBL2,Pocketbook,Basic Lux 2,758,1024,16,1.8,,6.0,2018
+PBT,Pocketbook,Basic Touch 2,600,800,16,1.8,,6.0,2016
+PE,Pocketbook,Era,1264,1680,16,1.8,300,7.0,2022
+PI1,Pocketbook,InkPad,1200,1600,16,1.8,250,8.0,2014
+PI2,Pocketbook,InkPad 2,1200,1600,16,1.8,,8.0,2016
 PI3,Pocketbook,InkPad 3,1369,1825,16,1.8,,7.8,2018
 PI3P,Pocketbook,InkPad 3 Pro,1404,1872,16,1.8,,7.8,2019
 PIX,Pocketbook,InkPad X,1404,1872,16,1.8,,10.3,2019
 PICG,Pocketbook,InkPad Color (Grayscale),1404,1872,16,1.8,300,7.8,2021
 PICC,Pocketbook,InkPad Color (Color),468,624,16,1,100,7.8,2021
 PIL,Pocketbook,InkPad Lite,825,1200,16,1.8,150,9.7,2021
-PS,Pocketbook,Sense,758,1024,16,1.8,,6,2014
-PTHD,Pocketbook,Touch HD (all),1072,1448,16,1.8,,6,
-PTL,Pocketbook,Touch Lux (all),758,1024,16,1.8,,6,
-PU,Pocketbook,Ultra,758,1024,16,1.8,,6,2014
+PS,Pocketbook,Sense,758,1024,16,1.8,,6.0,2014
+PTHD,Pocketbook,Touch HD (all),1072,1448,16,1.8,,6.0,
+PTL,Pocketbook,Touch Lux (all),758,1024,16,1.8,,6.0,
+PU,Pocketbook,Ultra,758,1024,16,1.8,,6.0,2014
 DPTS1,Sony,DPT-S1,1200,1600,16,1.8,150,13.3,2014
 DPTRP1,Sony,DPT-RP1,1650,2200,16,1.8,207,13.3,2017
 TE1,Tolino,Epos,1404,1872,16,1.8,,7.8,2017
-TE2,Tolino,Epos 2,1440,1920,16,1.8,300,8,2019
-TP2,Tolino,Page 2,1072,1448,16,1.8,300,6,2019
-TS2,Tolino,Shine 2 HD,1072,1448,16,1.8,300,6,2016
-TS3,Tolino,Shine 3,1072,1448,16,1.8,300,6,2018
-TV4,Tolino,Vision 3 HD,1072,1448,16,1.8,300,6,2016
-TV4,Tolino,Vision 4 HD,1072,1448,16,1.8,300,6,2016
-TV5,Tolino,Vision 5,1264,1680,16,1.8,300,7,2020
+TE2,Tolino,Epos 2,1440,1920,16,1.8,300,8.0,2019
+TP2,Tolino,Page 2,1072,1448,16,1.8,300,6.0,2019
+TS2,Tolino,Shine 2 HD,1072,1448,16,1.8,300,6.0,2016
+TS3,Tolino,Shine 3,1072,1448,16,1.8,300,6.0,2018
+TV4,Tolino,Vision 3 HD,1072,1448,16,1.8,300,6.0,2016
+TV4,Tolino,Vision 4 HD,1072,1448,16,1.8,300,6.0,2016
+TV5,Tolino,Vision 5,1264,1680,16,1.8,300,7.0,2020
 OTHER,,Other,0,0,16,1.8,,,

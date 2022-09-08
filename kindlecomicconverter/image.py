@@ -84,6 +84,10 @@ class ProfileData:
     PalleteNull = [
     ]
 
+    def getAllProfiles(self):
+        pd.set_option('display.max_rows', None)
+        return self.df
+
     def getRows(self, column, index=False):
         if not index:
             return list(self.df.loc[:, column])
@@ -96,10 +100,6 @@ class ProfileData:
             return True
         else:
             return False
-
-    def getAllProfiles(self):
-        pd.set_option('display.max_rows', None)
-        return self.df
 
     def profiles(self, profile):
         self.df.set_index("Profile", inplace=True)
@@ -116,6 +116,7 @@ class ProfileData:
             palette = "Palette" + str(self.df.loc[profile, "Palette"])
             gamma = self.df.loc[profile, "Gamma"]
         return (model, (width, height), palette, gamma)
+
 
 class ComicPageParser:
     def __init__(self, source, options):
