@@ -114,7 +114,7 @@ PROCESSING:
                         [Default=2]
   --cp CROPPINGPOWER, --croppingpower CROPPINGPOWER
                         Set cropping power [Default=1.0]
-  --cM CROPPINGMINIMUM, --croppingminimum CROPPINGMINIMUM
+  --cm CROPPINGMINIMUM, --croppingminimum CROPPINGMINIMUM
                         Set cropping minimum area ratio [Default=0.0]
   -bc BORDERCOLOR, --bordercolor BORDERCOLOR
                         Color of borders. Either use one of the available named colors or

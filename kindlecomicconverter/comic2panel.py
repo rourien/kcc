@@ -208,10 +208,9 @@ def getOutputDirectory(sourceDir):
         targetDir = sourceDir + "-Splitted"
     if os.path.isdir(targetDir) and not args.inPlace:
         counter = 0
-        targetDir = targetDir + str(counter)
         while os.path.isdir(targetDir + str(counter)):
             counter += 1
-            targetDir = targetDir + str(counter)
+        targetDir = targetDir + str(counter)
     return os.path.abspath(targetDir)
 
 
@@ -252,7 +251,7 @@ def main(argv=None, qtgui=None):
             sourceDir = os.path.abspath(sourceDir)
             if os.path.isdir(sourceDir):
                 targetDir = getOutputDirectory(sourceDir)
-                print("Working on " + "(" + str(countinput) + "/" + str(len(args.input)) + ") - " +
+                print("\nWorking on " + "(" + str(countinput) + "/" + str(len(args.input)) + ") - " +
                       os.path.normpath(sourceDir))
                 workDir = getWorkFolder(sourceDir,"KCCP-", ebook=False)
                 work = []

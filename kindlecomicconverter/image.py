@@ -29,10 +29,12 @@ from .shared import md5Checksum
 class ProfileData:
     def __init__(self):
         self.ignore_index = "ignore_index"
-        self.df = pd.read_csv("profiles.csv")
+        self.df = pd.read_csv("profiles.csv", encoding="utf-8", skipinitialspace=True)
         if os.path.exists("userprofiles.csv"):
             self.userdf = pd.read_csv("userprofiles.csv")
             self.df = pd.concat([self.df, self.userdf],ignore_index=True)
+        self.df = self.df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+        self.df.dropna(how="all", inplace=True)
         self.df.fillna("", inplace=True)
         self.df["PPI"] = self.df["PPI"].astype(str).apply(lambda x: x.replace(".0",""))
         self.df["Year"] = self.df["Year"].astype(str).apply(lambda x: x.replace(".0",""))
@@ -130,7 +132,7 @@ class ComicPageParser:
         self.color = self.colorCheck()
         self.fill = self.fillCheck()
         self.splitCheck()
-        # backwards compatibility for Pillow >9.1.0
+        # backwards compatibility for Pillow <9.1.0
         if not hasattr(Image, 'Resampling'):
             Image.Resampling = Image
 
@@ -148,7 +150,8 @@ class ComicPageParser:
         dstwidth, dstheight = self.size
         if (width > height) != (dstwidth > dstheight) and width <= dstheight and height <= dstwidth \
                 and not self.opt.webtoon and self.opt.splitter == 1:
-            self.payload.append(['R', self.source, self.image.rotate(90, Image.Resampling.BICUBIC, True), self.color, self.fill])
+            self.payload.append(['R', self.source, self.image.rotate(90, Image.Resampling.BICUBIC, True),
+                                 self.color, self.fill])
         elif (width > height) != (dstwidth > dstheight) and not self.opt.webtoon:
             if self.opt.splitter != 1:
                 if width > height:
@@ -252,7 +255,7 @@ class ComicPage:
             self.targetPath = os.path.join(path[0], os.path.splitext(path[1])[0]) + '-KCC-B'
         elif 'S2' in mode:
             self.targetPath = os.path.join(path[0], os.path.splitext(path[1])[0]) + '-KCC-C'
-        # backwards compatibility for Pillow >9.1.0
+        # backwards compatibility for Pillow <9.1.0
         if not hasattr(Image, 'Resampling'):
             Image.Resampling = Image
 
@@ -327,7 +330,8 @@ class ComicPage:
                 elif imagex < imagey:
                     borderh = int(imagey - self.image.size[1])
                 self.image = ImageOps.expand(self.image, border=(borderw, borderh), fill=self.fill)
-                self.image = ImageOps.fit(self.image, (imagex, imagey), method, centering=(0.5, 0.5))
+                self.image = ImageOps.fit(self.image, (imagex, imagey), method=Image.Resampling.BICUBIC,
+                                          centering=(0.5, 0.5))
         elif self.opt.stretch or (self.opt.kfx and ('-KCC-B' in self.targetPath or '-KCC-C' in self.targetPath)):
             self.image = self.image.resize(self.size, method)
         elif self.image.size[0] <= self.size[0] and self.image.size[1] <= self.size[1] and not self.opt.upscale:
@@ -336,7 +340,8 @@ class ComicPage:
                 borderh = int((self.size[1] - self.image.size[1]) / 2)
                 self.image = ImageOps.expand(self.image, border=(borderw, borderh), fill=self.fill)
                 if self.image.size[0] != self.size[0] or self.image.size[1] != self.size[1]:
-                    self.image = ImageOps.fit(self.image, self.size, method=Image.Resampling.BICUBIC, centering=(0.5, 0.5))
+                    self.image = ImageOps.fit(self.image, self.size, method=Image.Resampling.BICUBIC,
+                                              centering=(0.5, 0.5))
         else:
             if self.opt.format == 'CBZ' or self.opt.kfx:
                 ratioDev = float(self.size[0]) / float(self.size[1])
@@ -346,7 +351,8 @@ class ComicPage:
                 elif (float(self.image.size[0]) / float(self.image.size[1])) > ratioDev:
                     diff = int(self.image.size[0] / ratioDev) - self.image.size[1]
                     self.image = ImageOps.expand(self.image, border=(0, int(diff / 2)), fill=self.fill)
-                self.image = ImageOps.fit(self.image, self.size, method=method, centering=(0.5, 0.5))
+                self.image = ImageOps.fit(self.image, self.size, method=Image.Resampling.BICUBIC,
+                                          centering=(0.5, 0.5))
             else:
                 hpercent = self.size[1] / float(self.image.size[1])
                 wsize = int((float(self.image.size[0]) * float(hpercent)))
@@ -408,7 +414,7 @@ class Cover:
             self.tomeid = tomeid
         self.image = Image.open(source)
         self.process()
-        # backwards compatibility for Pillow >9.1.0
+        # backwards compatibility for Pillow <9.1.0
         if not hasattr(Image, 'Resampling'):
             Image.Resampling = Image
 
