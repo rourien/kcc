@@ -8,6 +8,8 @@ other/windows/kindlegen.exe
 dist/
 build/
 KindleComicConverter.egg-info/
+.vscode/
 .idea/
 /venv/
 /kindlegen.exe
+userprofiles.csv

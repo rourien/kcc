@@ -20,6 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import io
 import os
+import pandas as pd
 import mozjpeg_lossless_optimization
 from PIL import Image, ImageOps, ImageStat, ImageChops, ImageFilter
 from .shared import md5Checksum
@@ -27,7 +28,16 @@ from .shared import md5Checksum
 
 class ProfileData:
     def __init__(self):
-        pass
+        self.ignore_index = "ignore_index"
+        self.df = pd.read_csv("profiles.csv", encoding="utf-8", skipinitialspace=True)
+        if os.path.exists("userprofiles.csv"):
+            self.userdf = pd.read_csv("userprofiles.csv")
+            self.df = pd.concat([self.df, self.userdf],ignore_index=True)
+        self.df = self.df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+        self.df.dropna(how="all", inplace=True)
+        self.df.fillna("", inplace=True)
+        self.df["PPI"] = self.df["PPI"].astype(str).apply(lambda x: x.replace(".0",""))
+        self.df["Year"] = self.df["Year"].astype(str).apply(lambda x: x.replace(".0",""))
 
     Palette4 = [
         0x00, 0x00, 0x00,
@@ -76,28 +86,38 @@ class ProfileData:
     PalleteNull = [
     ]
 
-    Profiles = {
-        'K1': ("Kindle 1", (600, 670), Palette4, 1.8),
-        'K2': ("Kindle 2", (600, 670), Palette15, 1.8),
-        'K34': ("Kindle Keyboard/Touch", (600, 800), Palette16, 1.8),
-        'K578': ("Kindle", (600, 800), Palette16, 1.8),
-        'KDX': ("Kindle DX/DXG", (824, 1000), Palette16, 1.8),
-        'KPW': ("Kindle Paperwhite 1/2", (758, 1024), Palette16, 1.8),
-        'KV': ("Kindle Paperwhite 3/4/Voyage/Oasis", (1072, 1448), Palette16, 1.8),
-        'KPW5': ("Kindle Paperwhite 5/Signature Edition", (1236, 1648), Palette16, 1.8),
-        'KO': ("Kindle Oasis 2/3", (1264, 1680), Palette16, 1.8),
-        'KoMT': ("Kobo Mini/Touch", (600, 800), Palette16, 1.8),
-        'KoG': ("Kobo Glo", (768, 1024), Palette16, 1.8),
-        'KoGHD': ("Kobo Glo HD", (1072, 1448), Palette16, 1.8),
-        'KoA': ("Kobo Aura", (758, 1024), Palette16, 1.8),
-        'KoAHD': ("Kobo Aura HD", (1080, 1440), Palette16, 1.8),
-        'KoAH2O': ("Kobo Aura H2O", (1080, 1430), Palette16, 1.8),
-        'KoAO': ("Kobo Aura ONE", (1404, 1872), Palette16, 1.8),
-        'KoC': ("Kobo Clara HD", (1072, 1448), Palette16, 1.8),
-        'KoL': ("Kobo Libra H2O", (1264, 1680), Palette16, 1.8),
-        'KoF': ("Kobo Forma", (1440, 1920), Palette16, 1.8),
-        'OTHER': ("Other", (0, 0), Palette16, 1.8),
-    }
+    def getAllProfiles(self):
+        pd.set_option('display.max_rows', None)
+        return self.df
+
+    def getRows(self, column, index=False):
+        if not index:
+            return list(self.df.loc[:, column])
+        else:
+            return list(self.df.iloc[:, column])
+
+    def checkProfileMatch(self, column1:list, column2:list):
+        match = self.df.loc[(self.df[column1[0]] == column1[1]) & (self.df[column2[0]] == column2[1])]
+        if len(match.index) != 0:
+            return True
+        else:
+            return False
+
+    def profiles(self, profile):
+        self.df.set_index("Profile", inplace=True)
+        try:
+            model = self.df.loc[profile, "Model"][-1]
+            width = self.df.loc[profile, "Width"][-1]
+            height = self.df.loc[profile, "Height"][-1]
+            palette = "Palette" + str(self.df.loc[profile, "Palette"][-1])
+            gamma = self.df.loc[profile, "Gamma"][-1]
+        except IndexError:
+            model = self.df.loc[profile, "Model"]
+            width = self.df.loc[profile, "Width"]
+            height = self.df.loc[profile, "Height"]
+            palette = "Palette" + str(self.df.loc[profile, "Palette"])
+            gamma = self.df.loc[profile, "Gamma"]
+        return (model, (width, height), palette, gamma)
 
 
 class ComicPageParser:
@@ -112,7 +132,7 @@ class ComicPageParser:
         self.color = self.colorCheck()
         self.fill = self.fillCheck()
         self.splitCheck()
-        # backwards compatibility for Pillow >9.1.0
+        # backwards compatibility for Pillow <9.1.0
         if not hasattr(Image, 'Resampling'):
             Image.Resampling = Image
 
@@ -130,7 +150,8 @@ class ComicPageParser:
         dstwidth, dstheight = self.size
         if (width > height) != (dstwidth > dstheight) and width <= dstheight and height <= dstwidth \
                 and not self.opt.webtoon and self.opt.splitter == 1:
-            self.payload.append(['R', self.source, self.image.rotate(90, Image.Resampling.BICUBIC, True), self.color, self.fill])
+            self.payload.append(['R', self.source, self.image.rotate(90, Image.Resampling.BICUBIC, True),
+                                 self.color, self.fill])
         elif (width > height) != (dstwidth > dstheight) and not self.opt.webtoon:
             if self.opt.splitter != 1:
                 if width > height:
@@ -234,7 +255,7 @@ class ComicPage:
             self.targetPath = os.path.join(path[0], os.path.splitext(path[1])[0]) + '-KCC-B'
         elif 'S2' in mode:
             self.targetPath = os.path.join(path[0], os.path.splitext(path[1])[0]) + '-KCC-C'
-        # backwards compatibility for Pillow >9.1.0
+        # backwards compatibility for Pillow <9.1.0
         if not hasattr(Image, 'Resampling'):
             Image.Resampling = Image
 
@@ -309,7 +330,8 @@ class ComicPage:
                 elif imagex < imagey:
                     borderh = int(imagey - self.image.size[1])
                 self.image = ImageOps.expand(self.image, border=(borderw, borderh), fill=self.fill)
-                self.image = ImageOps.fit(self.image, (imagex, imagey), method, centering=(0.5, 0.5))
+                self.image = ImageOps.fit(self.image, (imagex, imagey), method=Image.Resampling.BICUBIC,
+                                          centering=(0.5, 0.5))
         elif self.opt.stretch or (self.opt.kfx and ('-KCC-B' in self.targetPath or '-KCC-C' in self.targetPath)):
             self.image = self.image.resize(self.size, method)
         elif self.image.size[0] <= self.size[0] and self.image.size[1] <= self.size[1] and not self.opt.upscale:
@@ -318,7 +340,8 @@ class ComicPage:
                 borderh = int((self.size[1] - self.image.size[1]) / 2)
                 self.image = ImageOps.expand(self.image, border=(borderw, borderh), fill=self.fill)
                 if self.image.size[0] != self.size[0] or self.image.size[1] != self.size[1]:
-                    self.image = ImageOps.fit(self.image, self.size, method=Image.Resampling.BICUBIC, centering=(0.5, 0.5))
+                    self.image = ImageOps.fit(self.image, self.size, method=Image.Resampling.BICUBIC,
+                                              centering=(0.5, 0.5))
         else:
             if self.opt.format == 'CBZ' or self.opt.kfx:
                 ratioDev = float(self.size[0]) / float(self.size[1])
@@ -328,7 +351,8 @@ class ComicPage:
                 elif (float(self.image.size[0]) / float(self.image.size[1])) > ratioDev:
                     diff = int(self.image.size[0] / ratioDev) - self.image.size[1]
                     self.image = ImageOps.expand(self.image, border=(0, int(diff / 2)), fill=self.fill)
-                self.image = ImageOps.fit(self.image, self.size, method=method, centering=(0.5, 0.5))
+                self.image = ImageOps.fit(self.image, self.size, method=Image.Resampling.BICUBIC,
+                                          centering=(0.5, 0.5))
             else:
                 hpercent = self.size[1] / float(self.image.size[1])
                 wsize = int((float(self.image.size[0]) * float(hpercent)))
@@ -390,7 +414,7 @@ class Cover:
             self.tomeid = tomeid
         self.image = Image.open(source)
         self.process()
-        # backwards compatibility for Pillow >9.1.0
+        # backwards compatibility for Pillow <9.1.0
         if not hasattr(Image, 'Resampling'):
             Image.Resampling = Image
 

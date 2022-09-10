@@ -21,11 +21,11 @@
 import os
 import sys
 import logging
-from shutil import rmtree, copytree, move
+from shutil import rmtree, copytree
 from argparse import ArgumentParser
 from multiprocessing import Pool
 from PIL import Image, ImageChops, ImageOps, ImageDraw
-from .shared import createLogger, getImageFileName, walkLevel, walkSort, sanitizeTrace, intro
+from .shared import createLogger, getImageFileName, walkLevel, walkSort, sanitizeTrace, getWorkFolder, intro
 try:
     from PyQt5 import QtCore
 except ImportError:
@@ -44,6 +44,9 @@ def mergeDirectoryTick(output):
 
 def mergeDirectory(work):
     try:
+        # backwards compatibility for Pillow <9.1.0
+        if not hasattr(Image, 'Resampling'):
+            Image.Resampling = Image
         directory = work[0]
         images = []
         imagesValid = []
@@ -71,7 +74,8 @@ def mergeDirectory(work):
                 if img.size[0] < targetWidth or img.size[0] > targetWidth:
                     widthPercent = (targetWidth / float(img.size[0]))
                     heightSize = int((float(img.size[1]) * float(widthPercent)))
-                    img = ImageOps.fit(img, (targetWidth, heightSize), method=Image.BICUBIC, centering=(0.5, 0.5))
+                    img = ImageOps.fit(img, (targetWidth, heightSize), method=Image.Resampling.BICUBIC,
+                                       centering=(0.5, 0.5))
                 result.paste(img, (0, y))
                 y += img.size[1]
                 os.remove(i)
@@ -193,27 +197,49 @@ def splitImage(work):
         return str(sys.exc_info()[1]), sanitizeTrace(sys.exc_info()[2])
 
 
+def getOutputDirectory(sourceDir):
+    if args.output:
+        if args.inPlace:
+            targetDir = os.path.abspath(args.output) + os.path.sep + os.path.basename(sourceDir)
+        else:
+            targetDir = os.path.abspath(args.output) + os.path.sep + os.path.basename(sourceDir) + "-Splitted"
+    elif args.inPlace:
+        targetDir = sourceDir
+    else:
+        targetDir = sourceDir + "-Splitted"
+    if os.path.isdir(targetDir) and not args.inPlace:
+        counter = 0
+        while os.path.isdir(targetDir + str(counter)):
+            counter += 1
+        targetDir = targetDir + str(counter)
+    return os.path.abspath(targetDir)
+
+
 def main(argv=None, qtgui=None):
-    global options, GUI, splitWorkerPool, splitWorkerOutput, mergeWorkerPool, mergeWorkerOutput
+    global GUI, args, splitWorkerPool, splitWorkerOutput, mergeWorkerPool, mergeWorkerOutput
     parser = ArgumentParser(prog="kcc-c2p", usage="Usage: kcc-c2p [options] [input]", add_help=False)
     mainOptions = parser.add_argument_group("MANDATORY")
     otherOptions = parser.add_argument_group("OTHER")
 
     mainOptions.add_argument("input", action="extend", nargs="*", default=None,
-                            help="Full path to comic folder to be proccessed")
+                             help="Full path to comic folder(s) to be proccessed. Separate multiple inputs"
+                             " with spaces.")
     mainOptions.add_argument("-y", "--height", type=int, dest="height", default="0",
-                           help="Height of the target device screen")
+                             help="Height of the target device screen")
     mainOptions.add_argument("-i", "--in-place", action="store_true", dest="inPlace", default=False,
-                           help="Overwrite source directory")
+                             help="Overwrite source directory")
     mainOptions.add_argument("-m", "--merge", action="store_true", dest="merge", default=False,
-                           help="Combine every directory into a single image before splitting")
+                             help="Combine every directory into a single image before splitting")
 
     otherOptions.add_argument("-l", "--log", action="store_true", dest="log",
                             help="Write logs to /kcc/logs/kcc-c2p.log")
+    mainOptions.add_argument("-o", "--output", action="store", dest="output", default=None,
+                             help="Output generated directories to specified directory")
+
     otherOptions.add_argument("-d", "--debug", action="store_true", dest="debug", default=False,
-                            help="Create debug file for every split image")
+                              help="Create a debug file for every split image")
     otherOptions.add_argument("-h", "--help", action="help",
-                            help="Show this help message and exit")
+                              help="Show this help message and exit")
     args = parser.parse_args(argv)
     logname = "kcc-c2p"
     createLogger(logname, args)
@@ -227,80 +253,90 @@ def main(argv=None, qtgui=None):
         parser.print_help()
         return 1
     if args.height > 0:
-        args.sourceDir = args.input[0]
-        args.targetDir = args.input[0] + "-Splitted"
-        if os.path.isdir(args.sourceDir):
-            rmtree(args.targetDir, True)
-            copytree(args.sourceDir, args.targetDir)
-            work = []
-            pagenumber = 1
-            splitWorkerOutput = []
-            splitWorkerPool = Pool(maxtasksperchild=10)
-            if args.merge:
-                logger.info("Merging images...")
-                directoryNumer = 1
-                mergeWork = []
-                mergeWorkerOutput = []
-                mergeWorkerPool = Pool(maxtasksperchild=10)
-                mergeWork.append([args.targetDir])
-                for root, dirs, files in os.walk(args.targetDir, False):
-                    dirs, files = walkSort(dirs, files)
-                    for directory in dirs:
-                        directoryNumer += 1
-                        mergeWork.append([os.path.join(root, directory)])
-                if GUI:
-                    GUI.progressBarTick.emit('Combining images')
-                    GUI.progressBarTick.emit(str(directoryNumer))
-                for i in mergeWork:
-                    mergeWorkerPool.apply_async(func=mergeDirectory, args=(i, ), callback=mergeDirectoryTick)
-                mergeWorkerPool.close()
-                mergeWorkerPool.join()
-                if GUI and not GUI.conversionAlive:
-                    rmtree(args.targetDir, True)
-                    # raise UserWarning("Conversion interrupted.")
-                    sys.exit(logger.exception("CRITICAL: Conversion interrupted."))
+        countinput = 1
+        targetDirsList = []
+        for sourceDir in args.input:
+            sourceDir = os.path.abspath(sourceDir)
+            if os.path.isdir(sourceDir):
+                targetDir = getOutputDirectory(sourceDir)
+                print("\nWorking on " + "(" + str(countinput) + "/" + str(len(args.input)) + ") - " +
+                      os.path.normpath(sourceDir))
+                workDir = getWorkFolder(sourceDir,"KCCP-", ebook=False)
+                work = []
+                pagenumber = 1
+                splitWorkerOutput = []
+                splitWorkerPool = Pool(maxtasksperchild=10)
+                if args.merge:
+                    logger.info("Merging images...")
+                    directoryNumer = 1
+                    mergeWork = []
+                    mergeWorkerOutput = []
+                    mergeWorkerPool = Pool(maxtasksperchild=10)
+                    mergeWork.append([workDir])
+                    for root, dirs, files in os.walk(workDir, False):
+                        dirs, files = walkSort(dirs, files)
+                        for directory in dirs:
+                            directoryNumer += 1
+                            mergeWork.append([os.path.join(root, directory)])
+                    if GUI:
+                        GUI.progressBarTick.emit('Combining images')
+                        GUI.progressBarTick.emit(str(directoryNumer))
+                    for i in mergeWork:
+                        mergeWorkerPool.apply_async(func=mergeDirectory, args=(i, ), callback=mergeDirectoryTick)
+                    mergeWorkerPool.close()
+                    mergeWorkerPool.join()
+                    if GUI and not GUI.conversionAlive:
+                        rmtree(targetDir, True)
+                        # raise UserWarning("Conversion interrupted.")
+                        sys.exit(logger.exception("CRITICAL: Conversion interrupted."))
                 if len(mergeWorkerOutput) > 0:
-                    rmtree(args.targetDir, True)
-                    # raise RuntimeError("One of workers crashed. Cause: " + mergeWorkerOutput[0][0],
-                                    #    mergeWorkerOutput[0][1])
-                    sys.exit(logger.exception(mergeWorkerOutput[0][1] + "CRITICAL: One of workers crashed. Cause: " +
+                        rmtree(workDir, True)
+                        # raise RuntimeError("One of workers crashed. Cause: " + mergeWorkerOutput[0][0],
+                                     #    mergeWorkerOutput[0][1])
+                        sys.exit(logger.exception(mergeWorkerOutput[0][1] + "CRITICAL: One of workers crashed. Cause: " +
                                     mergeWorkerOutput[0][0]))
             logger.info("Splitting images...")
-            for root, _, files in os.walk(args.targetDir, False):
-                for name in files:
-                    if getImageFileName(name) is not None:
-                        pagenumber += 1
-                        work.append([root, name, args])
-                    else:
-                        os.remove(os.path.join(root, name))
-            if GUI:
-                GUI.progressBarTick.emit('Splitting images')
-                GUI.progressBarTick.emit(str(pagenumber))
-                GUI.progressBarTick.emit('tick')
-            if len(work) > 0:
-                for i in work:
-                    splitWorkerPool.apply_async(func=splitImage, args=(i, ), callback=splitImageTick)
-                splitWorkerPool.close()
-                splitWorkerPool.join()
-                if GUI and not GUI.conversionAlive:
-                    rmtree(args.targetDir, True)
-                    # raise UserWarning("Conversion interrupted.")
-                    sys.exit(logger.exception("CRITICAL: Conversion interrupted."))
+                for root, _, files in os.walk(workDir, False):
+                    for name in files:
+                        if getImageFileName(name) is not None:
+                            pagenumber += 1
+                            work.append([root, name, args])
+                        else:
+                            os.remove(os.path.join(root, name))
+                if GUI:
+                    GUI.progressBarTick.emit('Splitting images')
+                    GUI.progressBarTick.emit(str(pagenumber))
+                    GUI.progressBarTick.emit('tick')
+                if len(work) > 0:
+                    for i in work:
+                        splitWorkerPool.apply_async(func=splitImage, args=(i, ), callback=splitImageTick)
+                    splitWorkerPool.close()
+                    splitWorkerPool.join()
+                    if GUI and not GUI.conversionAlive:
+                        rmtree(targetDir, True)
+                        # raise UserWarning("Conversion interrupted.")
+                        sys.exit(logger.exception("CRITICAL: Conversion interrupted."))
                 if len(splitWorkerOutput) > 0:
-                    rmtree(args.targetDir, True)
-                    # raise RuntimeError("One of workers crashed. Cause: " + splitWorkerOutput[0][0],
-                    #                    splitWorkerOutput[0][1])
+                        rmtree(workDir, True)
+                        # raise RuntimeError("One of workers crashed. Cause: " + splitWorkerOutput[0][0],
+                     #                    splitWorkerOutput[0][1])
                     sys.exit(logger.exception(splitWorkerOutput[0][1] + "CRITICAL: One of workers crashed. Cause: " +
                                     splitWorkerOutput[0][0]))
-                if args.inPlace:
-                    rmtree(args.sourceDir)
-                    move(args.targetDir, args.sourceDir)
-            else:
-                rmtree(args.targetDir, True)
-                # raise UserWarning("Source directory is empty.")
-                sys.exit(logger.exception("CRITICAL: Source directory is empty."))
+                    if args.inPlace:
+                        rmtree(targetDir)
+                    copytree(workDir, targetDir)
+                    rmtree(workDir)
+                else:
+                    rmtree(workDir, True)
+                    # raise UserWarning("Source directory is empty.")
+                countinput += 1
+                targetDirsList.append(targetDir)
+                    sys.exit(logger.exception("CRITICAL: Source directory is empty."))
         else:
-            # raise UserWarning("Provided path is not a directory.")
+                # raise UserWarning("Provided input is not a directory:" + sourceDir)
+        print("\nThe following directories were successfully created:")
+        for targetDir in targetDirsList:
+            print(os.path.normpath(targetDir))
             sys.exit(logger.exception("CRITICAL: Provided path is not a directory."))
     else:
         # raise UserWarning("Target height is not set.")

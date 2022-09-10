@@ -6,8 +6,7 @@
 [![AUR](https://img.shields.io/aur/version/kcc.svg)](https://aur.archlinux.org/packages/kcc/)
 
 **Kindle Comic Converter** is a Python app to convert comic/manga files or folders to EPUB, Panel View MOBI or E-Ink optimized CBZ.
-It was initially developed for Kindle but since version 4.6 it outputs valid EPUB 3.0 so _**despite its name, KCC is
-actually a comic/manga to EPUB converter that every e-reader owner can happily use**_.
+It was initially developed for Kindle but since version 4.6 it outputs valid EPUB 3.0 so _**despite its name, KCC is actually a comic/manga to EPUB converter that every e-reader and color tablet owner can happily use**_.
 It can also optionally optimize images by applying a number of transformations.
 
 ### A word of warning
@@ -29,8 +28,7 @@ If you find **KCC** valuable you can consider donating to the authors:
   - [![Donate Bitcoin](https://img.shields.io/badge/Donate-Bitcoin-green.svg)](https://jastrzeb.ski/donate/)
 
 ## BINARY RELEASES
-You can find the latest beta binaries here:
-**https://github.com/darodi/kcc/releases**
+You can find the latest **[beta binaries here](https://github.com/darodi/kcc/releases)**
 
 
 You can find the latest released binary at the following links:
@@ -39,24 +37,26 @@ You can find the latest released binary at the following links:
 - **Linux:** Currently unavailable.
 
 ## PYPI
-**KCC** is also available on PyPI.
+**KCC** is also available on **[PyPI](https://pypi.org/project/KindleComicConverter)**. _(Non-beta release)_
 ```
 pip install --user KindleComicConverter
 ```
 
 ## DEPENDENCIES
 Following software is required to run Linux version of **KCC** and/or bare sources:
-- Python 3.3+
+- Python 3.8+
 - [PyQt5](https://pypi.python.org/pypi/PyQt5) 5.6.0+ (only needed for GUI)
-- [Pillow](https://pypi.python.org/pypi/Pillow/) 4.0.0+ (5.2.0+ needed for WebP support)
+- [Pillow](https://pypi.python.org/pypi/Pillow) 4.0.0+ (5.2.0+ needed for WebP support)
 - [psutil](https://pypi.python.org/pypi/psutil) 5.0.0+
 - [python-slugify](https://pypi.python.org/pypi/python-slugify) 1.2.1+, <3.0.0
 - [raven](https://pypi.python.org/pypi/raven) 6.0.0+ (only needed for GUI)
+- [mozjpeg](https://pypi.org/project/mozjpeg-lossless-optimization)
+- [pandas](https://pypi.org/project/pandas)
 
 On Debian based distributions these two commands should install all needed dependencies:
 ```
 sudo apt-get install python3 python3-dev python3-pip libpng-dev libjpeg-dev p7zip-full
-pip3 install --user --upgrade pillow python-slugify psutil pyqt5 raven
+pip3 install --user --upgrade pillow python-slugify psutil pyqt5 raven mozjpeg-lossless-optimization pandas
 ```
 
 ### Optional dependencies
@@ -74,9 +74,11 @@ pip3 install --user --upgrade pillow python-slugify psutil pyqt5 raven
 ## USAGE
 
 Should be pretty self-explanatory. All options have detailed information in tooltips.
-After completed conversion, you should find ready file alongside the original input file (same directory).
+After completed conversion, you should find the ready file(s) alongside the original input file(s) (same directory) or in the specified the output directory.
 
 Please check [our wiki](https://github.com/ciromattia/kcc/wiki/) for more details.
+
+See an updated [profile list here](https://github.com/rourien/kcc/wiki/Profiles) along with instructions for adding a custom profile.
 
 CLI version of **KCC** is intended for power users. It allows using options that might not be compatible and decrease the quality of output.
 
@@ -91,8 +93,9 @@ MANDATORY:
 
 MAIN:
   -p PROFILE, --profile PROFILE
-                        Device profile (Available options: K1, K2, K34, K578, KDX, KPW, KPW5, KV, KO,
-                        KoMT, KoG, KoGHD, KoA, KoAHD, KoAH2O, KoAO, KoC, KoL, KoF) [Default=KV]
+                        Device profile (Common options: K578, KPW5, KV, KoGHD, KoA, KoAHD, KoAH2O,
+                         KoAO, KoC, KoL, KoF, KoN, KoE, KoS). For a list of all avaliable profiles,
+                         type -h profile [Default=KV]
   -m, --manga-style     Manga style (right-to-left reading and splitting)
   -q, --hq              Try to increase the quality of magnification
   -2, --two-panel       Display two not four panels in Panel View mode
@@ -111,10 +114,13 @@ PROCESSING:
                         [Default=2]
   --cp CROPPINGPOWER, --croppingpower CROPPINGPOWER
                         Set cropping power [Default=1.0]
-  --cM CROPPINGMINIMUM, --croppingminimum CROPPINGMINIMUM
+  --cm CROPPINGMINIMUM, --croppingminimum CROPPINGMINIMUM
                         Set cropping minimum area ratio [Default=0.0]
-  --bb, --blackborders  Disable autodetection and force black borders
-  --wb, --whiteborders  Disable autodetection and force white borders
+  -bc BORDERCOLOR, --bordercolor BORDERCOLOR
+                        Color of borders. Either use one of the available named colors or
+                        the hexadecimal value of the color. For a list of all avaliable
+                        named colors, type -h bordercolor. Auto tries to detect whether to
+                        use black or white. [Default=Auto]
   --fc, --forcecolor    Don't convert images to grayscale
   --fp, --forcepng      Create PNG files instead JPEG
   --mj, --mozjpeg       Create JPEG files using mozJpeg
@@ -123,8 +129,8 @@ OUTPUT SETTINGS:
   -o OUTPUT, --output OUTPUT
                         Output generated file to specified directory or file
   --cst COPYSOURCETREE, --copysourcetree COPYSOURCETREE
-                        Additional option for use with --output. Name of the top most directory to be
-                        used when recreating the source directory tree in the output directory.
+                        Additional option for use with --output. Name of the top most directory to
+                        be used when recreating the source directory tree in the output directory.
   -t TITLE, --title TITLE
                         Comic title [Default=filename or directory name]
   -f {Auto,MOBI,EPUB,CBZ,KFX}, --format {Auto,MOBI,EPUB,CBZ,KFX}
@@ -134,9 +140,10 @@ OUTPUT SETTINGS:
                         Consider every subdirectory as separate volume [Default=0]
   -e {0,1,2,3,4,5}, --skipexisting {0,1,2,3,4,5}
                         Skip processing specific files. 0: Do not skip. 1: Skip if the wanted file
-                        already exists in the output directory. 2: Skip if the source file was already
-                        processed. 3: Copy the already processed file to the output directory. 4: Use
-                        both options 1 and 2. 5: Use both options 1 and 3. [Default=0]
+                        already exists in the output directory. 2: Skip if the source file was
+                        already processed. 3: Copy the already processed file to the output
+                        directory. 4: Use both options 1 and 2. 5: Use both options 1 and 3.
+                        [Default=0]
   -z PADZEROS, --padzeros PADZEROS
                         Pad "_kcc(#)" with given number of zeros. [Default=0]
   --cci, --copycomicinfo
@@ -159,11 +166,14 @@ OTHER:
 Usage: kcc-c2p [options] [input]
 
 MANDATORY:
-  input                 Full path to comic folder to be proccessed
+  input                 Full path to comic folder(s) to be proccessed. Separate multiple
+                        inputs with spaces.
   -y HEIGHT, --height HEIGHT
                         Height of the target device screen
   -i, --in-place        Overwrite source directory
   -m, --merge           Combine every directory into a single image before splitting
+  -o OUTPUT, --output OUTPUT
+                        Output generated directories to specified directory
 
 OTHER:
   -l, --log             Write logs to /kcc/logs/kcc-c2p.log

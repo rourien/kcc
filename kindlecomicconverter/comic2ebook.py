@@ -21,31 +21,29 @@
 import os
 import sys
 import logging
+import argparse
 from time import strftime, gmtime
 from copy import copy
 from glob import glob, escape
-from re import sub
-from stat import S_IWRITE, S_IREAD, S_IEXEC
+from re import compile, sub
 from zipfile import ZipFile, ZIP_STORED, ZIP_DEFLATED
 from tempfile import mkdtemp, gettempdir, TemporaryFile
-from shutil import move, copytree, rmtree, copyfile
-from argparse import ArgumentParser
+from shutil import move, rmtree, copyfile
 from multiprocessing import Pool
 from uuid import uuid4
 from slugify import slugify as slugifyExt
-from PIL import Image
+from PIL import Image, ImageColor
 from subprocess import STDOUT, PIPE
-from psutil import Popen, virtual_memory, disk_usage
+from psutil import Popen, virtual_memory
 from html import escape as hescape
 try:
     from PyQt5 import QtCore
 except ImportError:
     QtCore = None
-from .shared import createLogger, md5Checksum, getImageFileName, walkSort, walkLevel, sanitizeTrace, intro
+from .shared import createLogger, md5Checksum, getImageFileName, walkSort, walkLevel, sanitizeTrace, \
+                    getDirectorySize, getWorkFolder, intro
 from . import comic2panel
 from . import image
-from . import comicarchive
-from . import pdfjpgextract
 from . import dualmetafix
 from . import metadata
 from . import kindle
@@ -60,6 +58,9 @@ def main(argv=None):
     copyprocessedlist = []
     multiprocessedlist = []
     completedlist = []
+    sourcefiles = []
+    countsourcefiles = 1
+    ext = (".cbz",".zip",".cbr",".rar",".cb7",".7z",".pdf")
     logname = "kcc-c2e"
     parser = makeParser()
     args = parser.parse_args(argv)
@@ -71,7 +72,7 @@ def main(argv=None):
         parser.print_help()
         return 0
     if sys.platform.startswith('win'):
-        sources = set([source for arg in options.input for source in glob(escape(arg))])
+        sources = set([source for option in options.input for source in glob(escape(option))])
     else:
         sources = set(options.input)
     if len(sources) == 0:
@@ -80,21 +81,22 @@ def main(argv=None):
     for source in sources:
         source = source.rstrip('\\').rstrip('/')
         checkOptions()
-        if os.path.isdir(source) and options.batchsplit == 0:
-            sourcefiles = []
-            ext = (".cbz",".zip",".cbr",".rar",".cb7",".7z",".pdf")
-            for dirpath, dirnames, filenames in os.walk(source):
-                for filename in filenames:
-                    if str(filename).endswith(ext):
-                        sourcefiles.append(os.path.join(dirpath,filename))
-            for sourcefile in sourcefiles:
-                logger.info("")
-                logger.info('Working on ' + os.path.normpath(sourcefile))
-                makeBook(sourcefile)
+        if options.batchsplit == 0:
+            if os.path.isdir(source):
+                for dirpath, _, filenames in os.walk(source):
+                    for filename in filenames:
+                        if str(filename).endswith(ext):
+                            sourcefiles.append(os.path.join(dirpath,filename))
+            elif str(source).endswith(ext):
+                sourcefiles.append(source)
         else:
-            logger.info("")
-            logger.info('Working on ' + os.path.normpath(source))
+            print("\nWorking on " + os.path.normpath(source))
             makeBook(source)
+    for sourcefile in sourcefiles:
+        print("\nWorking on " + "(" + str(countsourcefiles) + "/" + str(len(sourcefiles)) + ") - " +
+                os.path.normpath(sourcefile))
+        makeBook(sourcefile)
+        countsourcefiles += 1
     if alreadyexistslist:
         logger.info("")
         logger.info("The following file(s) already exist in the output directory and were skipped:")
@@ -623,55 +625,6 @@ def imgFileProcessing(work):
         return str(sys.exc_info()[1]), sanitizeTrace(sys.exc_info()[2])
 
 
-def getWorkFolder(afile):
-    if os.path.isdir(afile):
-        if disk_usage(gettempdir())[2] < getDirectorySize(afile) * 2.5:
-            # raise UserWarning("Not enough disk space to perform conversion.")
-            sys.exit(logger.exception("CRITICAL: Not enough disk space to perform conversion."))
-        workdir = mkdtemp('', 'KCC-')
-        try:
-            os.rmdir(workdir)
-            fullPath = os.path.join(workdir, 'OEBPS', 'Images')
-            copytree(afile, fullPath)
-            sanitizePermissions(fullPath)
-            return workdir
-        except Exception:
-            rmtree(workdir, True)
-            # raise UserWarning("Failed to prepare a workspace.")
-            logger.exception(err)
-            sys.exit(logger.exception("CRITICAL: Failed to prepare a workspace."))
-    elif os.path.isfile(afile):
-        if disk_usage(gettempdir())[2] < os.path.getsize(afile) * 2.5:
-            # raise UserWarning("Not enough disk space to perform conversion.")
-            sys.exit(logger.exception("CRITICAL: Not enough disk space to perform conversion."))
-        if afile.lower().endswith('.pdf'):
-            pdf = pdfjpgextract.PdfJpgExtract(afile)
-            path, njpg = pdf.extract()
-            if njpg == 0:
-                rmtree(path, True)
-                raise UserWarning("Failed to extract images from PDF file.")
-        else:
-            workdir = mkdtemp('', 'KCC-')
-            try:
-                cbx = comicarchive.ComicArchive(afile)
-                path = cbx.extract(workdir)
-            except OSError as err:
-                rmtree(workdir, True)
-                # raise UserWarning(e.strerror)
-                sys.exit(logger.exception("CRITICAL: " + err.strerror))
-
-    else:
-        # raise UserWarning("Failed to open source file/directory.")
-        sys.exit(logger.exception("CRITICAL: Failed to open source file/directory."))
-
-
-    sanitizePermissions(path)
-    newpath = mkdtemp('', 'KCC-')
-    copytree(path, os.path.join(newpath, 'OEBPS', 'Images'))
-    rmtree(path, True)
-    return newpath
-
-
 def getExtension():
     if options.format == "CBZ":
         ext = ".cbz"
@@ -682,7 +635,7 @@ def getExtension():
     return ext
 
 
-def getOutputFilename(srcpath, wantedname, ext, tomenumber, checkexists=False):
+def getOutputFilename(srcpath, output, ext, tomenumber, checkexists=False):
     if options.copysourcetree:
         copysourcetree = options.copysourcetree
         if copysourcetree.endswith("/") or copysourcetree.endswith("\\"):
@@ -698,13 +651,13 @@ def getOutputFilename(srcpath, wantedname, ext, tomenumber, checkexists=False):
         srcpath = srcpath[:-1]
     if 'Ko' in options.profile and options.format == 'EPUB':
         ext = '.kepub.epub'
-    if wantedname is not None:
-        if wantedname.endswith(ext):
-            filename = os.path.abspath(wantedname)
+    if output is not None:
+        if output.endswith(ext):
+            filename = os.path.abspath(output)
         elif os.path.isdir(srcpath):
-            filename = os.path.join(os.path.abspath(options.output), copysourcetree, os.path.basename(srcpath) + ext)
+            filename = os.path.join(os.path.abspath(output), copysourcetree, os.path.basename(srcpath) + ext)
         else:
-            filename = os.path.join(os.path.abspath(options.output), copysourcetree,
+            filename = os.path.join(os.path.abspath(output), copysourcetree,
                                     os.path.basename(os.path.splitext(srcpath)[0]) + ext)
     elif os.path.isdir(srcpath):
         filename = srcpath + tomenumber.zfill(padzeros) + ext
@@ -772,15 +725,6 @@ def getComicInfo(path, originalpath):
             os.remove(xmlPath)
 
 
-def getDirectorySize(start_path='.'):
-    total_size = 0
-    for dirpath, _, filenames in os.walk(start_path):
-        for f in filenames:
-            fp = os.path.join(dirpath, f)
-            total_size += os.path.getsize(fp)
-    return total_size
-
-
 def getTopMargin(deviceres, size):
     y = int((deviceres[1] - size[1]) / 2) / deviceres[1] * 100
     return str(round(y, 1))
@@ -840,14 +784,6 @@ def sanitizeTreeKobo(filetree):
                 key = os.path.join(root, name)
                 if key != newKey:
                     os.replace(key, newKey)
-
-
-def sanitizePermissions(filetree):
-    for root, dirs, files in os.walk(filetree, False):
-        for name in files:
-            os.chmod(os.path.join(root, name), S_IWRITE | S_IREAD)
-        for name in dirs:
-            os.chmod(os.path.join(root, name), S_IWRITE | S_IREAD | S_IEXEC)
 
 
 def splitDirectory(path):
@@ -1007,25 +943,24 @@ def makeZIP(zipfilename, basedir, isepub=False):
 
 
 def makeParser():
-    psr = ArgumentParser(prog="kcc-c2e", usage="kcc-c2e [options] [input]", add_help =False)
+    psr = argparse.ArgumentParser(prog="kcc-c2e", usage="kcc-c2e [options] [input]", add_help =False)
 
-    requiredOptions = psr.add_argument_group("MANDATORY")
+    mandatoryOptions = psr.add_argument_group("MANDATORY")
     mainOptions = psr.add_argument_group("MAIN")
     processingOptions = psr.add_argument_group("PROCESSING")
     outputOptions = psr.add_argument_group("OUTPUT SETTINGS")
     customProfileOptions = psr.add_argument_group("CUSTOM PROFILE")
     otherOptions = psr.add_argument_group("OTHER")
-    profiles = ["K1", "K2", "K34", "K578", "KDX", "KPW", "KPW5", "KV", "KO", "KoMT", "KoG", "KoGHD",
-                "KoA", "KoAHD", "KoAH2O", "KoAO", "KoC", "KoL", "KoF"]
+    profiles = image.ProfileData().getRows("Profile")
     formats = ["Auto", "MOBI", "EPUB", "CBZ", "KFX"]
 
-    requiredOptions.add_argument("input", action="extend", nargs="*", default=None,
+    mandatoryOptions.add_argument("input", action="extend", nargs="*", default=None,
                                  help="Full path to comic folder(s) or file(s) to be proccessed. Separate multiple inputs with"
                                  " spaces.")
 
     mainOptions.add_argument("-p", "--profile", metavar="PROFILE", action="store", dest="profile", default="KV", choices=profiles,
-                             help="Device profile (Available options: K1, K2, K34, K578, KDX, KPW, KPW5, KV, KO, KoMT, KoG,"
-                             " KoGHD, KoA, KoAHD, KoAH2O, KoAO, KoC, KoL, KoF) [Default=%(default)s]")
+                             help="Device profile (Common options: K578, KPW5, KV, KoGHD, KoA, KoAHD, KoAH2O, KoAO, KoC, KoL,"
+                             " KoF, KoN, KoE, KoS). For a list of all avaliable profiles, type -h profile [Default=%(default)s]")
     mainOptions.add_argument("-m", "--manga-style", action="store_true", dest="righttoleft", default=False,
                              help="Manga style (right-to-left reading and splitting)")
     mainOptions.add_argument("-q", "--hq", action="store_true", dest="hq", default=False,
@@ -1039,7 +974,7 @@ def makeParser():
                                 " [Default=100MB for webtoon and 400MB for others]")
 
     outputOptions.add_argument("-o", "--output", action="store", dest="output", default=None,
-                               help="Output generated file to specified directory or file")
+                               help="Output generated file(s) to specified directory or file")
     outputOptions.add_argument("--cst", "--copysourcetree", action="store", dest="copysourcetree", default=None,
                                help="Additional option for use with --output. Name of the top most directory"
                                " or full path to the directory to be used when recreating the source directory"
@@ -1081,10 +1016,10 @@ def makeParser():
                                    default="1.0", help="Set cropping power [Default=%(default)s]")
     processingOptions.add_argument("--cm", "--croppingminimum", metavar="CROPPINGMINIMUM", type=float, dest="croppingm",
                                    default="0.0", help="Set cropping minimum area ratio [Default=0.0]")
-    processingOptions.add_argument("--bb", "--blackborders", action="store_true", dest="black_borders", default=False,
-                                   help="Disable autodetection and force black borders")
-    processingOptions.add_argument("--wb", "--whiteborders", action="store_true", dest="white_borders", default=False,
-                                   help="Disable autodetection and force white borders")
+    processingOptions.add_argument("-bc", "--bordercolor", metavar="BORDERCOLOR", action="store", dest="bordersColor",
+                                   default=None, help="Color of borders. Either use one of the available named colors or "
+                                   " use the hexadecimal value of the color. For a list of all avaliable named colors,"
+                                   " type -h bordercolor. [Default=Auto]")
     processingOptions.add_argument("--fc", "--forcecolor", action="store_true", dest="forcecolor", default=False,
                                    help="Don't convert images to grayscale")
     processingOptions.add_argument("--fp", "--forcepng", action="store_true", dest="forcepng", default=False,
@@ -1099,31 +1034,52 @@ def makeParser():
 
     otherOptions.add_argument("-l", "--log", action="store_true", dest="log",
                                 help="Write logs to /kcc/logs/kcc-c2e.log")
-    otherOptions.add_argument("-h", "--help", action="help",
+    otherOptions.add_argument("-h", "--help", action="extend", nargs="*", default=None,
                               help="Show this help message and exit")
 
     return psr
 
 
+def optionsHelp():
+    if options.help[0] == "profile":
+        print(image.ProfileData().getAllProfiles())
+    elif options.help[0] == "bordercolor":
+        import pandas as pd
+        namedcolors = pd.DataFrame(ImageColor.colormap.items(), columns=['Named Color', 'Hex Value'])
+        pd.set_option('display.max_rows', None)
+        print()
+        print(namedcolors)
+        print("Note: Refer here to see the colors visualized: "
+                " https://drafts.csswg.org/css-color-4/#named-colors")
+    else:
+        print("ERROR: Help option " + str(options.help) + " not avaliable.")
+
+
 def checkOptions():
     global options
+    profilematch = image.ProfileData().checkProfileMatch
     options.panelview = True
     options.iskindle = False
-    options.bordersColor = None
     options.kfx = False
     if options.format == 'Auto':
-        if options.profile in ['K1', 'K2', 'K34', 'K578', 'KPW', 'KPW5', 'KV', 'KO']:
+        if not options.profile in ['KDX'] and \
+                profilematch(["Profile", options.profile], ["Manufacturer", "Kindle"]):
             options.format = 'MOBI'
-        elif options.profile in ['OTHER', 'KoMT', 'KoG', 'KoGHD', 'KoA', 'KoAHD', 'KoAH2O', 'KoAO']:
+        elif options.profile in ['OTHER'] or \
+                profilematch(["Profile", options.profile], ["Manufacturer", "Kobo"]) or \
+                profilematch(["Profile", options.profile], ["Manufacturer", "Nook"]) or \
+                profilematch(["Profile", options.profile], ["Manufacturer", "Pocketbook"]) or \
+                profilematch(["Profile", options.profile], ["Manufacturer", "Tolino"]):
             options.format = 'EPUB'
-        elif options.profile in ['KDX']:
+        elif options.profile in ['KDX'] or \
+                profilematch(["Profile", options.profile], ["Manufacturer", "Amazon"]) or \
+                profilematch(["Profile", options.profile], ["Manufacturer", "Apple"]):
             options.format = 'CBZ'
-    if options.profile in ['K1', 'K2', 'K34', 'K578', 'KPW', 'KPW5', 'KV', 'KO']:
+        else:
+            raise UserWarning ("ERROR: Profile " + options.profile + " does not support Auto format. Specify a"
+                               " format with the format option.")
+    if profilematch(["Profile", options.profile], ["Manufacturer","Kindle"]):
         options.iskindle = True
-    if options.white_borders:
-        options.bordersColor = 'white'
-    if options.black_borders:
-        options.bordersColor = 'black'
     # Splitting MOBI is not optional
     if (options.format == 'MOBI' or options.format == 'KFX') and options.batchsplit != 2:
         options.batchsplit = 1
@@ -1154,20 +1110,28 @@ def checkOptions():
         options.panelview = False
     # Override profile data
     if options.customwidth != 0 or options.customheight != 0:
-        X = image.ProfileData.Profiles[options.profile][1][0]
-        Y = image.ProfileData.Profiles[options.profile][1][1]
+        X = image.ProfileData().profiles(options.profile)[1][0]
+        Y = image.ProfileData().profiles(options.profile)[1][1]
         if options.customwidth != 0:
             X = options.customwidth
         if options.customheight != 0:
             Y = options.customheight
         newProfile = ("Custom", (int(X), int(Y)), image.ProfileData.Palette16,
-                      image.ProfileData.Profiles[options.profile][3])
-        image.ProfileData.Profiles["Custom"] = newProfile
+                      image.ProfileData().profiles(options.profile)[3])
+        # image.ProfileData.Profiles["Custom"] = newProfile
         options.profile = "Custom"
-    options.profileData = image.ProfileData.Profiles[options.profile]
+        options.profileData = newProfile
+    else:
+        options.profileData = image.ProfileData().profiles(options.profile)
     # Only copy ComicInfo.xml to .cbz files
-    if not options.format == "CBZ":
-        options.copycomicinfo == False
+    if not options.format == "CBZ" and options.copycomicinfo:
+        raise UserWarning("ERROR: Can only copy ComicInfo.xml to CBZ format. Either change format or don't use the"
+                          " copycomicinfo option.")
+    # Only allow named color or hexadecimal border color
+    if options.bordersColor:
+        if not options.bordersColor in ImageColor.colormap.keys() and \
+                not compile(r"^#?([0-9a-f]{3}){1,2}$").match(options.bordersColor):
+            raise UserWarning("ERROR: Border color must be a hexadecimal color or one of the named colors.")
 
 
 def checkTools(source):
@@ -1251,12 +1215,12 @@ def makeBook(source, qtgui=None):
         checkTools(source)
     if not checkPre(source):
         logger.info("Preparing source images...")
-        path = getWorkFolder(source)
+        path = getWorkFolder(source, "KCC-")
         logger.info("Checking images...")
         getComicInfo(os.path.join(path, "OEBPS", "Images"), source)
         if not detectCorruption(os.path.join(path, "OEBPS", "Images"), source):
             if options.webtoon:
-                y = image.ProfileData.Profiles[options.profile][1][1]
+                y = image.ProfileData().profiles(options.profile)[1][1]
                 comic2panel.main(['-y ' + str(y), '-i', '-m', path], qtgui)
             if options.noprocessing:
                 logger.info("Do not process image. Ignore any profile or processing option.")
@@ -1298,7 +1262,8 @@ def makeBook(source, qtgui=None):
                 options.uuid = str(uuid4())
                 if len(tomes) > 9:
                     tomeNumber += 1
-                    options.title = options.baseTitle + ' [' + str(tomeNumber).zfill(2) + '/' + str(len(tomes)).zfill(2) + ']'
+                    options.title = options.baseTitle + ' [' + str(tomeNumber).zfill(2) + '/' + \
+                                    str(len(tomes)).zfill(2) + ']'
                 elif len(tomes) > 1:
                     tomeNumber += 1
                     options.title = options.baseTitle + ' [' + str(tomeNumber) + '/' + str(len(tomes)) + ']'
