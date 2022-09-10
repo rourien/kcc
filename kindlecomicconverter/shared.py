@@ -19,6 +19,7 @@
 #
 
 import os
+import sys
 import logging
 from hashlib import md5
 from html.parser import HTMLParser
@@ -88,10 +89,11 @@ def getDirectorySize(start_path='.'):
     return total_size
 
 
-def getWorkFolder(afile, name, ebook=True):
+def getWorkFolder(logger, afile, name, ebook=True):
     if os.path.isdir(afile):
         if disk_usage(gettempdir())[2] < getDirectorySize(afile) * 2.5:
-            raise UserWarning("Not enough disk space to perform conversion.")
+            # raise UserWarning("Not enough disk space to perform conversion.")
+            sys.exit(logger.exception("CRITICAL: Not enough disk space to perform conversion."))
         workdir = mkdtemp('', name)
         try:
             os.rmdir(workdir)
@@ -104,16 +106,19 @@ def getWorkFolder(afile, name, ebook=True):
             return os.path.abspath(workdir)
         except Exception:
             rmtree(workdir, True)
-            raise UserWarning("Failed to prepare a workspace.")
+            # raise UserWarning("Failed to prepare a workspace.")
+            sys.exit(logger.exception("CRITICAL: Failed to prepare a workspace."))
     elif os.path.isfile(afile):
         if disk_usage(gettempdir())[2] < os.path.getsize(afile) * 2.5:
-            raise UserWarning("Not enough disk space to perform conversion.")
+            # raise UserWarning("Not enough disk space to perform conversion.")
+            sys.exit(logger.exception("CRITICAL: Not enough disk space to perform conversion."))
         if str(afile).lower().endswith('.pdf'):
             pdf = pdfjpgextract.PdfJpgExtract(afile)
             path, njpg = pdf.extract()
             if njpg == 0:
                 rmtree(path, True)
-                raise UserWarning("Failed to extract images from PDF file.")
+                # raise UserWarning("Failed to extract images from PDF file.")
+                sys.exit(logger.exception("CRITICAL: Failed to extract images from PDF file."))
         else:
             workdir = mkdtemp('', name)
             try:
@@ -121,7 +126,8 @@ def getWorkFolder(afile, name, ebook=True):
                 path = cbx.extract(workdir)
             except OSError as e:
                 rmtree(workdir, True)
-                raise UserWarning(e.strerror)
+                # raise UserWarning(e.strerror)
+                sys.exit(logger.exception("CRITICAL: " + e.strerror))
         sanitizePermissions(path)
         newpath = mkdtemp('', name)
         if ebook:
@@ -131,8 +137,8 @@ def getWorkFolder(afile, name, ebook=True):
         rmtree(path, True)
         return os.path.abspath(newpath)
     else:
-        raise UserWarning("Failed to open source file/directory.")
-
+        # raise UserWarning("Failed to open source file/directory.")
+        sys.exit(logger.exception("CRITICAL: Failed to open source file/directory."))
 
 def walkSort(dirnames, filenames):
     convert = lambda text: int(text) if text.isdigit() else text

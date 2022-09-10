@@ -90,11 +90,13 @@ def main(argv=None):
             elif str(source).endswith(ext):
                 sourcefiles.append(source)
         else:
-            print("\nWorking on " + os.path.normpath(source))
+            logger.info("")
+            logger.info("Working on " + os.path.normpath(source))
             makeBook(source)
     for sourcefile in sourcefiles:
-        print("\nWorking on " + "(" + str(countsourcefiles) + "/" + str(len(sourcefiles)) + ") - " +
-                os.path.normpath(sourcefile))
+        logger.info("")
+        logger.info("Working on " + "(" + str(countsourcefiles) + "/" + str(len(sourcefiles)) + ") - " +
+                    os.path.normpath(sourcefile))
         makeBook(sourcefile)
         countsourcefiles += 1
     if alreadyexistslist:
@@ -1215,7 +1217,7 @@ def makeBook(source, qtgui=None):
         checkTools(source)
     if not checkPre(source):
         logger.info("Preparing source images...")
-        path = getWorkFolder(source, "KCC-")
+        path = getWorkFolder(logger, source, "KCC-")
         logger.info("Checking images...")
         getComicInfo(os.path.join(path, "OEBPS", "Images"), source)
         if not detectCorruption(os.path.join(path, "OEBPS", "Images"), source):

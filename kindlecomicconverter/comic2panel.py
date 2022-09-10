@@ -232,7 +232,7 @@ def main(argv=None, qtgui=None):
                              help="Combine every directory into a single image before splitting")
 
     otherOptions.add_argument("-l", "--log", action="store_true", dest="log",
-                            help="Write logs to /kcc/logs/kcc-c2p.log")
+                              help="Write logs to /kcc/logs/kcc-c2p.log")
     mainOptions.add_argument("-o", "--output", action="store", dest="output", default=None,
                              help="Output generated directories to specified directory")
 
@@ -259,9 +259,10 @@ def main(argv=None, qtgui=None):
             sourceDir = os.path.abspath(sourceDir)
             if os.path.isdir(sourceDir):
                 targetDir = getOutputDirectory(sourceDir)
-                print("\nWorking on " + "(" + str(countinput) + "/" + str(len(args.input)) + ") - " +
-                      os.path.normpath(sourceDir))
-                workDir = getWorkFolder(sourceDir,"KCCP-", ebook=False)
+                logger.info("")
+                logger.info("Working on " + "(" + str(countinput) + "/" + str(len(args.input)) + ") - " +
+                            os.path.normpath(sourceDir))
+                workDir = getWorkFolder(logger, sourceDir, "KCCP-", ebook=False)
                 work = []
                 pagenumber = 1
                 splitWorkerOutput = []
@@ -289,13 +290,13 @@ def main(argv=None, qtgui=None):
                         rmtree(targetDir, True)
                         # raise UserWarning("Conversion interrupted.")
                         sys.exit(logger.exception("CRITICAL: Conversion interrupted."))
-                if len(mergeWorkerOutput) > 0:
-                        rmtree(workDir, True)
-                        # raise RuntimeError("One of workers crashed. Cause: " + mergeWorkerOutput[0][0],
-                                     #    mergeWorkerOutput[0][1])
-                        sys.exit(logger.exception(mergeWorkerOutput[0][1] + "CRITICAL: One of workers crashed. Cause: " +
-                                    mergeWorkerOutput[0][0]))
-            logger.info("Splitting images...")
+                    if len(mergeWorkerOutput) > 0:
+                            rmtree(workDir, True)
+                            # raise RuntimeError("One of workers crashed. Cause: " + mergeWorkerOutput[0][0],
+                                            #    mergeWorkerOutput[0][1])
+                            sys.exit(logger.exception(mergeWorkerOutput[0][1] + "CRITICAL: One of workers crashed. Cause: " +
+                                                      mergeWorkerOutput[0][0]))
+                logger.info("Splitting images...")
                 for root, _, files in os.walk(workDir, False):
                     for name in files:
                         if getImageFileName(name) is not None:
@@ -316,12 +317,12 @@ def main(argv=None, qtgui=None):
                         rmtree(targetDir, True)
                         # raise UserWarning("Conversion interrupted.")
                         sys.exit(logger.exception("CRITICAL: Conversion interrupted."))
-                if len(splitWorkerOutput) > 0:
-                        rmtree(workDir, True)
-                        # raise RuntimeError("One of workers crashed. Cause: " + splitWorkerOutput[0][0],
-                     #                    splitWorkerOutput[0][1])
-                    sys.exit(logger.exception(splitWorkerOutput[0][1] + "CRITICAL: One of workers crashed. Cause: " +
-                                    splitWorkerOutput[0][0]))
+                    if len(splitWorkerOutput) > 0:
+                            rmtree(workDir, True)
+                            # raise RuntimeError("One of workers crashed. Cause: " + splitWorkerOutput[0][0],
+                                            #    splitWorkerOutput[0][1])
+                            sys.exit(logger.exception(splitWorkerOutput[0][1] + "CRITICAL: One of workers crashed. Cause: " +
+                                                      splitWorkerOutput[0][0]))
                     if args.inPlace:
                         rmtree(targetDir)
                     copytree(workDir, targetDir)
@@ -329,15 +330,16 @@ def main(argv=None, qtgui=None):
                 else:
                     rmtree(workDir, True)
                     # raise UserWarning("Source directory is empty.")
+                    sys.exit(logger.exception("CRITICAL: Source directory is empty."))
                 countinput += 1
                 targetDirsList.append(targetDir)
-                    sys.exit(logger.exception("CRITICAL: Source directory is empty."))
-        else:
+            else:
                 # raise UserWarning("Provided input is not a directory:" + sourceDir)
-        print("\nThe following directories were successfully created:")
+                sys.exit(logger.exception("CRITICAL: Provided input is not a directory." + sourceDir))
+        logger.info("")
+        logger.info("The following directories were successfully created:")
         for targetDir in targetDirsList:
-            print(os.path.normpath(targetDir))
-            sys.exit(logger.exception("CRITICAL: Provided path is not a directory."))
+            logger.info(os.path.normpath(targetDir))
     else:
         # raise UserWarning("Target height is not set.")
         sys.exit(logger.exception("CRITICAL: Target height is not set."))
