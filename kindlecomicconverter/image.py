@@ -30,9 +30,11 @@ class ProfileData:
     def __init__(self):
         self.ignore_index = "ignore_index"
         self.df = pd.read_csv("profiles.csv", encoding="utf-8", skipinitialspace=True)
-        if os.path.exists("userprofiles.csv"):
-            self.userdf = pd.read_csv("userprofiles.csv")
-            self.df = pd.concat([self.df, self.userdf],ignore_index=True)
+        if not os.path.exists("userprofiles.csv"):
+            with open("userprofiles.csv", "w") as f:
+                f.write("Profile,Manufacturer,Model,Width,Height,Palette,Gamma,PPI,Screen Size (in),Year")
+        self.userdf = pd.read_csv("userprofiles.csv")
+        self.df = pd.concat([self.df, self.userdf], ignore_index=True)
         self.df = self.df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
         self.df.dropna(how="all", inplace=True)
         self.df.fillna("", inplace=True)
